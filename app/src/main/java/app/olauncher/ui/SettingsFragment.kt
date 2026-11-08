@@ -1,11 +1,14 @@
 package app.olauncher.ui
 
+import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.location.Geocoder
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -16,7 +19,10 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -47,6 +53,9 @@ import app.olauncher.helper.showPopupMenu
 import app.olauncher.helper.showStatusBar
 import app.olauncher.helper.showToast
 import app.olauncher.listener.DeviceAdmin
+import java.util.Locale
+import java.text.NumberFormat
+import java.util.concurrent.Executors
 
 class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListener {
 
@@ -59,6 +68,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private val binding get() = _binding!!
     private val showPentastic = System.currentTimeMillis() % 2 == 0L
     private var dialog: OlDialog? = null
+    private val settingsExecutor = Executors.newSingleThreadExecutor()
+    private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        prefs.agendaEnabled = granted
+        populateInfoWidgets()
+    }
+    private val locationPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        prefs.weatherEnabled = grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        populateInfoWidgets()
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
@@ -81,6 +100,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateProMessage()
         populateKeyboardText()
         populateScreenTimeOnOff()
+        populateMindfulApps()
         populateLockSettings()
         // Home button for recents feature disabled
         // populateHomeButtonRecents()
@@ -91,6 +111,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateAlignment()
         populateStatusBar()
         populateDateTime()
+        populateInfoWidgets()
         populateSwipeApps()
         populateActionHints()
         initClickListeners()
@@ -105,6 +126,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.olauncherHiddenApps -> showHiddenApps()
             R.id.moreFeatures -> viewModel.showDialog.postValue(Constants.Dialog.PRO_MESSAGE)
             R.id.screenTimeOnOff -> viewModel.showDialog.postValue(Constants.Dialog.DIGITAL_WELLBEING)
+            R.id.mindfulApps -> showAppListIfEnabled(Constants.FLAG_MINDFUL_APPS)
             R.id.appInfo -> openAppInfo(requireContext(), Process.myUserHandle(), BuildConfig.APPLICATION_ID)
             R.id.setLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.toggleLock -> toggleLockMode()
@@ -117,6 +139,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.alignment -> showAlignmentMenu(view)
             R.id.statusBar -> toggleStatusBar()
             R.id.dateTime -> showDateTimeMenu(view)
+            R.id.agendaOnOff -> toggleAgenda()
+            R.id.weatherOnOff -> toggleWeather()
             R.id.appThemeText -> showAppThemeMenu(view, showSystem = false)
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
@@ -165,6 +189,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 else
                     showAccessibilityDialog()
             }
+            R.id.weatherOnOff -> showManualLocationDialog()
         }
         return true
     }
@@ -181,11 +206,15 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         // binding.homeButtonRecents.setOnClickListener(this)
         binding.homeAppsNum.setOnClickListener(this)
         binding.screenTimeOnOff.setOnClickListener(this)
+        binding.mindfulApps.setOnClickListener(this)
         binding.dailyWallpaperUrl.setOnClickListener(this)
         binding.dailyWallpaper.setOnClickListener(this)
         binding.alignment.setOnClickListener(this)
         binding.statusBar.setOnClickListener(this)
         binding.dateTime.setOnClickListener(this)
+        binding.agendaOnOff?.setOnClickListener(this)
+        binding.weatherOnOff?.setOnClickListener(this)
+        binding.weatherOnOff?.setOnLongClickListener(this)
         binding.swipeLeftApp.setOnClickListener(this)
         binding.swipeRightApp.setOnClickListener(this)
         binding.appThemeText.setOnClickListener(this)
@@ -368,6 +397,90 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 Constants.DateTime.ON -> R.string.on
                 else -> R.string.off
             }
+        )
+    }
+
+    private fun toggleAgenda() {
+        if (prefs.agendaEnabled) {
+            prefs.agendaEnabled = false
+            populateInfoWidgets()
+        } else if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+            prefs.agendaEnabled = true
+            populateInfoWidgets()
+        } else calendarPermission.launch(Manifest.permission.READ_CALENDAR)
+    }
+
+    private fun toggleWeather() {
+        if (prefs.weatherEnabled) {
+            prefs.weatherEnabled = false
+            populateInfoWidgets()
+        } else if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            prefs.weatherEnabled = true
+            populateInfoWidgets()
+        } else requestLocationPermission()
+    }
+
+    private fun populateInfoWidgets() {
+        binding.agendaOnOff?.setText(if (prefs.agendaEnabled) R.string.on else R.string.off)
+        binding.weatherOnOff?.text = when {
+            !prefs.weatherEnabled -> getString(R.string.off)
+            prefs.weatherManual -> prefs.weatherLocationName
+            else -> getString(R.string.on)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun showManualLocationDialog() {
+        var input: EditText? = null
+        val locationDialog = requireContext().createDialog(
+            title = R.string.set_location,
+            action = R.string.okay,
+            neutral = R.string.automatic_location,
+            onNeutral = {
+                prefs.weatherManual = false
+                prefs.weatherUpdatedAt = 0L
+                if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    prefs.weatherEnabled = true
+                    populateInfoWidgets()
+                } else requestLocationPermission()
+            },
+            onAction = {
+                val query = input?.text?.toString()?.trim().orEmpty()
+                val appContext = requireContext().applicationContext
+                settingsExecutor.execute {
+                    val address = runCatching { Geocoder(appContext, Locale.getDefault()).getFromLocationName(query, 1)?.firstOrNull() }.getOrNull()
+                    activity?.runOnUiThread {
+                        if (address == null) appContext.showToast(R.string.location_not_found)
+                        else {
+                            prefs.weatherLatitude = address.latitude.toFloat()
+                            prefs.weatherLongitude = address.longitude.toFloat()
+                            prefs.weatherLocationName = query.ifBlank {
+                                address.subLocality ?: address.locality ?: address.subAdminArea ?: address.adminArea.orEmpty()
+                            }
+                            prefs.weatherManual = true
+                            prefs.weatherEnabled = true
+                            prefs.weatherUpdatedAt = 0L
+                            if (_binding != null) populateInfoWidgets()
+                        }
+                    }
+                }
+            },
+        ) { container ->
+            EditText(requireContext()).also {
+                input = it
+                it.hint = getString(R.string.manual_location_hint)
+                it.setSingleLine(true)
+            }
+        }
+        showDialog(locationDialog)
+    }
+
+    private fun requestLocationPermission() {
+        locationPermission.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            )
         )
     }
 
@@ -596,6 +709,15 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             if (requireContext().appUsagePermissionGranted()) binding.screenTimeOnOff.text = getString(R.string.on)
             else binding.screenTimeOnOff.text = getString(R.string.off)
         } else binding.screenTimeLayout.visibility = View.GONE
+    }
+
+    private fun populateMindfulApps() {
+        binding.mindfulApps.text = NumberFormat.getIntegerInstance().format(prefs.mindfulApps.size)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::prefs.isInitialized) populateMindfulApps()
     }
 
     private fun populateKeyboardText() {

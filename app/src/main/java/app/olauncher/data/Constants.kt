@@ -62,6 +62,7 @@ object Constants {
 
     const val FLAG_LAUNCH_APP = 100
     const val FLAG_HIDDEN_APPS = 101
+    const val FLAG_MINDFUL_APPS = 102
 
     const val FLAG_SET_HOME_APP_1 = 1
     const val FLAG_SET_HOME_APP_2 = 2
@@ -77,6 +78,7 @@ object Constants {
     const val FLAG_SET_CLOCK_APP = 13
     const val FLAG_SET_CALENDAR_APP = 14
     const val FLAG_SET_SCREEN_TIME_APP = 15
+    const val FLAG_SET_WEATHER_APP = 16
 
     const val REQUEST_CODE_ENABLE_ADMIN = 666
     const val REQUEST_CODE_LAUNCHER_SELECTOR = 678

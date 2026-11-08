@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Olauncher</string>
     <string name="github" translatable="false">Github</string>
     <string name="lock_layout_description" translatable="false">lock layout description to be used a unique id to lock screen</string>
@@ -158,6 +158,12 @@
     <string name="are_you_using_your_phone_or_is_your_phone_using_you">Are you using your phone, or is your phone using you?</string>
     <string name="about_olauncher">About and FAQs</string>
     <string name="screen_time">Screen time</string>
+    <string name="mindful_apps" tools:ignore="MissingTranslation">Apps with opening delay</string>
+    <string name="mindful_pause" tools:ignore="MissingTranslation">Mindful pause</string>
+    <string name="mindful_opening_title" tools:ignore="MissingTranslation">Opening %1$s</string>
+    <string name="mindful_opening_count" tools:ignore="MissingTranslation,PluralsCandidate">Opening %1$d today</string>
+    <string name="mindful_opening_wait" tools:ignore="MissingTranslation,PluralsCandidate">Opening in %1$d seconds…</string>
+    <string name="cancel" tools:ignore="MissingTranslation">Cancel</string>
     <string name="learn_more">Learn more</string>
     <string name="did_you_know">Did you know?</string>
     <string name="leave_a_review">Leave a review</string>
@@ -180,4 +186,17 @@
     <string name="invalid_shortcut">Invalid shortcut</string>
     <string name="shortcut_not_found">Shortcut not found</string>
     <string name="unable_to_open_shortcut">Unable to open shortcut</string>
+    <string name="upcoming_events" tools:ignore="MissingTranslation">Upcoming events</string>
+    <string name="open_calendar" tools:ignore="MissingTranslation">Open calendar</string>
+    <string name="add_event" tools:ignore="MissingTranslation">Add event</string>
+    <string name="all_day" tools:ignore="MissingTranslation">All day</string>
+    <string name="weather_summary" tools:ignore="MissingTranslation">%1$s %2$d °C  ·  ⌖ %3$s</string>
+    <string name="agenda_on_home" tools:ignore="MissingTranslation">Upcoming events</string>
+    <string name="weather_on_home" tools:ignore="MissingTranslation">Current weather</string>
+    <string name="set_location" tools:ignore="MissingTranslation">Set location</string>
+    <string name="manual_location_hint" tools:ignore="MissingTranslation">City or region</string>
+    <string name="location_not_found" tools:ignore="MissingTranslation">Location not found</string>
+    <string name="automatic_location" tools:ignore="MissingTranslation">Automatic</string>
+    <string name="unable_to_open_map" tools:ignore="MissingTranslation">Unable to open a maps app</string>
+    <string name="event_location" tools:ignore="MissingTranslation">⌖ %1$s</string>
 </resources>
