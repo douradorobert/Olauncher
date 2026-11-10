@@ -67,6 +67,7 @@ dependencies {
 
     //Material dependency
     implementation libs.material
+    implementation libs.car.app
 
     testImplementation libs.junit
 }

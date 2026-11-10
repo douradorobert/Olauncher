@@ -51,6 +51,16 @@
     <string name="donate">Donate</string>
     <string name="swipe_up_for_apps">1. Swipe up for all apps\n2. Long press anywhere for settings</string>
     <string name="apps_on_home_screen">Apps on home screen</string>
+    <string name="app_spacing" tools:ignore="MissingTranslation">App spacing</string>
+    <string name="compact" tools:ignore="MissingTranslation">Compact</string>
+    <string name="default_spacing" tools:ignore="MissingTranslation">Default</string>
+    <string name="wide" tools:ignore="MissingTranslation">Wide</string>
+    <string name="information_section" tools:ignore="MissingTranslation">Information</string>
+    <string name="wellbeing_section" tools:ignore="MissingTranslation">Wellbeing</string>
+    <string name="suggestions_section" tools:ignore="MissingTranslation">Suggestions</string>
+    <string name="current_location" tools:ignore="MissingTranslation">Current location</string>
+    <string name="home_address_hint" tools:ignore="MissingTranslation">Home address or neighborhood</string>
+    <string name="location_waiting" tools:ignore="MissingTranslation">Waiting for location. Keep location enabled and try again if needed.</string>
     <string name="daily_wallpaper_update">Daily new wallpaper</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
@@ -159,6 +169,47 @@
     <string name="about_olauncher">About and FAQs</string>
     <string name="screen_time">Screen time</string>
     <string name="mindful_apps" tools:ignore="MissingTranslation">Apps with opening delay</string>
+    <string name="contextual_suggestions" tools:ignore="MissingTranslation">Contextual suggestions</string>
+    <string name="contextual_apps" tools:ignore="MissingTranslation">Suggested apps</string>
+    <string name="suggestion_display" tools:ignore="MissingTranslation">Suggestion display</string>
+    <string name="mixed" tools:ignore="MissingTranslation">Mixed</string>
+    <string name="separate" tools:ignore="MissingTranslation">Separate</string>
+    <string name="suggestion_rules" tools:ignore="MissingTranslation">Suggestion rules</string>
+    <string name="configure_rule" tools:ignore="MissingTranslation">Configure rule</string>
+    <string name="rule_conditions_and" tools:ignore="MissingTranslation">All configured conditions must match (AND)</string>
+    <string name="calendar_rule_window" tools:ignore="MissingTranslation">Calendar: any keyword matches (OR), from 3 hours before until the event ends</string>
+    <string name="driving_rule_or" tools:ignore="MissingTranslation">Driving: Bluetooth and Android Auto are alternatives (OR)</string>
+    <string name="rule_info_message" tools:ignore="MissingTranslation">All configured groups must match (AND). At home and outside home are mutually exclusive options. If weekdays are selected, any selected day can match (OR); no selection means every day. Within calendar keywords, any word can match (OR). Bluetooth and Android Auto are also alternatives (OR). Calendar rules are active from 3 hours before until the event ends. Cooldown starts when the complete rule stops matching.</string>
+    <string name="rule_days_of_week" tools:ignore="MissingTranslation">Valid days</string>
+    <string-array name="rule_day_letters" tools:ignore="MissingTranslation"><item>S</item><item>M</item><item>T</item><item>W</item><item>T</item><item>F</item><item>S</item></string-array>
+    <string-array name="rule_day_names" tools:ignore="MissingTranslation"><item>Sunday</item><item>Monday</item><item>Tuesday</item><item>Wednesday</item><item>Thursday</item><item>Friday</item><item>Saturday</item></string-array>
+    <string name="start_time_hint" tools:ignore="MissingTranslation">Start time, e.g. 06:00</string>
+    <string name="end_time_hint" tools:ignore="MissingTranslation">End time, e.g. 10:00</string>
+    <string name="event_keywords_hint" tools:ignore="MissingTranslation">Calendar words, comma separated</string>
+    <string name="outside_home_rule" tools:ignore="MissingTranslation">Only outside home</string>
+    <string name="at_home_rule" tools:ignore="MissingTranslation">Only at home</string>
+    <string name="select_suggested_apps_first" tools:ignore="MissingTranslation">Select suggested apps first</string>
+    <string name="home_location" tools:ignore="MissingTranslation">Home location</string>
+    <string name="home_wifi" tools:ignore="MissingTranslation">Home Wi-Fi</string>
+    <string name="use_current_wifi" tools:ignore="MissingTranslation">Use current Wi-Fi</string>
+    <string name="wifi_not_available" tools:ignore="MissingTranslation">Connect to your home Wi-Fi first</string>
+    <string name="wifi_details_unavailable" tools:ignore="MissingTranslation">Wi-Fi is connected, but Android hid its name. Enable precise location and Location services, then try again.</string>
+    <string name="car_bluetooth" tools:ignore="MissingTranslation">Car Bluetooth</string>
+    <string name="select_car_bluetooth" tools:ignore="MissingTranslation">Select a paired car device</string>
+    <string name="driving_bluetooth_rule" tools:ignore="MissingTranslation">Driving: car Bluetooth</string>
+    <string name="driving_android_auto_rule" tools:ignore="MissingTranslation">Driving: Android Auto</string>
+    <string name="cooldown_minutes_label" tools:ignore="MissingTranslation">Cooldown after rule stops matching (minutes)</string>
+    <string name="set" tools:ignore="MissingTranslation">Set</string>
+    <string name="location_saved" tools:ignore="MissingTranslation">Home location saved</string>
+    <string name="suggested" tools:ignore="MissingTranslation">Suggested</string>
+    <string name="backup_restore" tools:ignore="MissingTranslation">Backup and restore</string>
+    <string name="export_settings" tools:ignore="MissingTranslation">Export settings</string>
+    <string name="import_settings" tools:ignore="MissingTranslation">Import settings</string>
+    <string name="backup_exported" tools:ignore="MissingTranslation">Settings exported</string>
+    <string name="backup_imported" tools:ignore="MissingTranslation">Settings restored</string>
+    <string name="backup_failed" tools:ignore="MissingTranslation">Could not read this backup</string>
+    <string name="backup_export_failed" tools:ignore="MissingTranslation">Could not write the backup</string>
+    <string name="permission_required_value" tools:ignore="MissingTranslation">%1$s · permission required</string>
     <string name="mindful_pause" tools:ignore="MissingTranslation">Mindful pause</string>
     <string name="mindful_opening_title" tools:ignore="MissingTranslation">Opening %1$s</string>
     <string name="mindful_opening_count" tools:ignore="MissingTranslation,PluralsCandidate">Opening %1$d today</string>

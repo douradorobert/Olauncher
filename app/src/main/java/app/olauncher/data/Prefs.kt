@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import android.view.Gravity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import org.json.JSONObject
+import org.json.JSONArray
 
 class Prefs(context: Context) {
     private val PREFS_FILENAME = "app.olauncher"
@@ -22,6 +24,7 @@ class Prefs(context: Context) {
     private val DAILY_WALLPAPER_URL = "DAILY_WALLPAPER_URL"
     private val HOME_ALIGNMENT = "HOME_ALIGNMENT"
     private val HOME_BOTTOM_ALIGNMENT = "HOME_BOTTOM_ALIGNMENT"
+    private val APP_SPACING_SCALE = "APP_SPACING_SCALE"
     private val APP_LABEL_ALIGNMENT = "APP_LABEL_ALIGNMENT"
     private val STATUS_BAR = "STATUS_BAR"
     private val DATE_TIME_VISIBILITY = "DATE_TIME_VISIBILITY"
@@ -30,6 +33,23 @@ class Prefs(context: Context) {
     private val HIDDEN_APPS = "HIDDEN_APPS"
     private val HIDDEN_APPS_UPDATED = "HIDDEN_APPS_UPDATED"
     private val MINDFUL_APPS = "MINDFUL_APPS"
+    private val CONTEXTUAL_SUGGESTIONS = "CONTEXTUAL_SUGGESTIONS"
+    private val CONTEXTUAL_APPS = "CONTEXTUAL_APPS"
+    private val CONTEXTUAL_HISTORY = "CONTEXTUAL_HISTORY"
+    private val CONTEXTUAL_RULES = "CONTEXTUAL_RULES"
+    private val CONTEXTUAL_MIXED = "CONTEXTUAL_MIXED"
+    private val HOME_LOCATION_SET = "HOME_LOCATION_SET"
+    private val HOME_LATITUDE = "HOME_LATITUDE"
+    private val HOME_LONGITUDE = "HOME_LONGITUDE"
+    private val HOME_WIFI_BSSID = "HOME_WIFI_BSSID"
+    private val HOME_WIFI_NAME = "HOME_WIFI_NAME"
+    private val HOME_WIFI_BSSIDS = "HOME_WIFI_BSSIDS"
+    private val HOME_WIFI_NAMES = "HOME_WIFI_NAMES"
+    private val CAR_BLUETOOTH_ADDRESS = "CAR_BLUETOOTH_ADDRESS"
+    private val CAR_BLUETOOTH_NAME = "CAR_BLUETOOTH_NAME"
+    private val LAST_CAR_BLUETOOTH_ACTIVE = "LAST_CAR_BLUETOOTH_ACTIVE"
+    private val LAST_ANDROID_AUTO_ACTIVE = "LAST_ANDROID_AUTO_ACTIVE"
+    private val CONTEXTUAL_RULE_MATCH_PREFIX = "CONTEXTUAL_RULE_MATCH_"
     private val MINDFUL_OPEN_DATE_PREFIX = "MINDFUL_OPEN_DATE_"
     private val MINDFUL_OPEN_COUNT_PREFIX = "MINDFUL_OPEN_COUNT_"
     private val SHOW_HINT_COUNTER = "SHOW_HINT_COUNTER"
@@ -187,6 +207,10 @@ class Prefs(context: Context) {
         get() = prefs.getBoolean(HOME_BOTTOM_ALIGNMENT, false)
         set(value) = prefs.edit { putBoolean(HOME_BOTTOM_ALIGNMENT, value).apply() }
 
+    var appSpacingScale: Float
+        get() = prefs.getFloat(APP_SPACING_SCALE, 1.0f)
+        set(value) = prefs.edit { putFloat(APP_SPACING_SCALE, value).apply() }
+
     var appLabelAlignment: Int
         get() = prefs.getInt(APP_LABEL_ALIGNMENT, Gravity.START)
         set(value) = prefs.edit { putInt(APP_LABEL_ALIGNMENT, value).apply() }
@@ -256,15 +280,163 @@ class Prefs(context: Context) {
         get() = prefs.getStringSet(MINDFUL_APPS, emptySet())?.toSet() ?: emptySet()
         set(value) = prefs.edit { putStringSet(MINDFUL_APPS, value).apply() }
 
+    var contextualSuggestionsEnabled: Boolean
+        get() = prefs.getBoolean(CONTEXTUAL_SUGGESTIONS, false)
+        set(value) = prefs.edit { putBoolean(CONTEXTUAL_SUGGESTIONS, value).apply() }
+
+    var contextualApps: Set<String>
+        get() = prefs.getStringSet(CONTEXTUAL_APPS, emptySet())?.toSet() ?: emptySet()
+        set(value) = prefs.edit { putStringSet(CONTEXTUAL_APPS, value).apply() }
+
+    var contextualSuggestionsMixed: Boolean
+        get() = prefs.getBoolean(CONTEXTUAL_MIXED, true)
+        set(value) = prefs.edit { putBoolean(CONTEXTUAL_MIXED, value).apply() }
+
+    fun contextualRules(): Map<String, ContextualRule> {
+        val array = runCatching { JSONArray(prefs.getString(CONTEXTUAL_RULES, "[]") ?: "[]") }.getOrDefault(JSONArray())
+        return buildMap {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val identity = item.optString("app")
+                if (identity.isBlank()) continue
+                val keywords = item.optJSONArray("keywords")
+                val days = item.optJSONArray("daysOfWeek")
+                put(identity, ContextualRule(
+                    appIdentity = identity,
+                    startMinutes = item.optInt("start", -1).takeIf { it >= 0 },
+                    endMinutes = item.optInt("end", -1).takeIf { it >= 0 },
+                    eventKeywords = buildSet {
+                        if (keywords != null) for (keywordIndex in 0 until keywords.length()) add(keywords.getString(keywordIndex))
+                    },
+                    outsideHome = item.optBoolean("outsideHome"),
+                    atHome = item.optBoolean("atHome"),
+                    drivingBluetooth = item.optBoolean("drivingBluetooth"),
+                    drivingAndroidAuto = item.optBoolean("drivingAndroidAuto"),
+                    cooldownMinutes = item.optInt("cooldownMinutes", item.optInt("drivingCooldownMinutes")),
+                    daysOfWeek = buildSet {
+                        if (days != null) for (dayIndex in 0 until days.length()) {
+                            days.optInt(dayIndex).takeIf { it in 1..7 }?.let(::add)
+                        }
+                    },
+                ))
+            }
+        }
+    }
+
+    fun setContextualRule(rule: ContextualRule) {
+        val rules = contextualRules().toMutableMap()
+        if (rule.isEmpty) rules.remove(rule.appIdentity) else rules[rule.appIdentity] = rule
+        val array = JSONArray()
+        rules.values.forEach { value ->
+            array.put(JSONObject()
+                .put("app", value.appIdentity)
+                .put("start", value.startMinutes ?: -1)
+                .put("end", value.endMinutes ?: -1)
+                .put("keywords", JSONArray(value.eventKeywords.toList()))
+                .put("outsideHome", value.outsideHome)
+                .put("atHome", value.atHome)
+                .put("drivingBluetooth", value.drivingBluetooth)
+                .put("drivingAndroidAuto", value.drivingAndroidAuto)
+                .put("cooldownMinutes", value.cooldownMinutes)
+                .put("daysOfWeek", JSONArray(value.daysOfWeek.sorted())))
+        }
+        prefs.edit { putString(CONTEXTUAL_RULES, array.toString()).apply() }
+    }
+
+    var homeLocationSet: Boolean
+        get() = prefs.getBoolean(HOME_LOCATION_SET, false)
+        set(value) = prefs.edit { putBoolean(HOME_LOCATION_SET, value).apply() }
+
+    var homeLatitude: Float
+        get() = prefs.getFloat(HOME_LATITUDE, 0f)
+        set(value) = prefs.edit { putFloat(HOME_LATITUDE, value).apply() }
+
+    var homeLongitude: Float
+        get() = prefs.getFloat(HOME_LONGITUDE, 0f)
+        set(value) = prefs.edit { putFloat(HOME_LONGITUDE, value).apply() }
+
+    var homeWifiBssid: String
+        get() = prefs.getString(HOME_WIFI_BSSID, "").orEmpty()
+        set(value) = prefs.edit { putString(HOME_WIFI_BSSID, value).apply() }
+
+    var homeWifiName: String
+        get() = prefs.getString(HOME_WIFI_NAME, "").orEmpty()
+        set(value) = prefs.edit { putString(HOME_WIFI_NAME, value).apply() }
+
+    val homeWifiBssids: Set<String>
+        get() = (prefs.getStringSet(HOME_WIFI_BSSIDS, emptySet())?.toSet().orEmpty() + homeWifiBssid)
+            .filter(String::isNotBlank).toSet()
+
+    val homeWifiNames: Set<String>
+        get() = (prefs.getStringSet(HOME_WIFI_NAMES, emptySet())?.toSet().orEmpty() + homeWifiName)
+            .filter(String::isNotBlank).toSet()
+
+    fun addHomeWifi(name: String, bssid: String) {
+        prefs.edit {
+            putStringSet(HOME_WIFI_NAMES, (homeWifiNames + name).filter(String::isNotBlank).toSet())
+            putStringSet(HOME_WIFI_BSSIDS, (homeWifiBssids + bssid).filter(String::isNotBlank).toSet())
+            putString(HOME_WIFI_NAME, name.ifBlank { bssid })
+            putString(HOME_WIFI_BSSID, bssid)
+            apply()
+        }
+    }
+
+    var carBluetoothAddress: String
+        get() = prefs.getString(CAR_BLUETOOTH_ADDRESS, "").orEmpty()
+        set(value) = prefs.edit { putString(CAR_BLUETOOTH_ADDRESS, value).apply() }
+
+    var carBluetoothName: String
+        get() = prefs.getString(CAR_BLUETOOTH_NAME, "").orEmpty()
+        set(value) = prefs.edit { putString(CAR_BLUETOOTH_NAME, value).apply() }
+
+    var lastCarBluetoothActiveAt: Long
+        get() = prefs.getLong(LAST_CAR_BLUETOOTH_ACTIVE, 0L)
+        set(value) = prefs.edit { putLong(LAST_CAR_BLUETOOTH_ACTIVE, value).apply() }
+
+    var lastAndroidAutoActiveAt: Long
+        get() = prefs.getLong(LAST_ANDROID_AUTO_ACTIVE, 0L)
+        set(value) = prefs.edit { putLong(LAST_ANDROID_AUTO_ACTIVE, value).apply() }
+
+    fun contextualRuleLastMatchedAt(appIdentity: String): Long =
+        prefs.getLong(CONTEXTUAL_RULE_MATCH_PREFIX + appIdentity, 0L)
+
+    fun recordContextualRuleMatch(appIdentity: String, matchedAt: Long) {
+        prefs.edit { putLong(CONTEXTUAL_RULE_MATCH_PREFIX + appIdentity, matchedAt).apply() }
+    }
+
+    fun recordContextualLaunch(appIdentity: String, hour: Int) {
+        if (!contextualSuggestionsEnabled || appIdentity !in contextualApps) return
+        val history = runCatching { JSONObject(prefs.getString(CONTEXTUAL_HISTORY, "{}") ?: "{}") }
+            .getOrDefault(JSONObject())
+        val key = "$appIdentity#${contextualTimeBucket(hour)}"
+        history.put(key, history.optInt(key) + 1)
+        prefs.edit { putString(CONTEXTUAL_HISTORY, history.toString()).apply() }
+    }
+
+    fun contextualLaunches(appIdentity: String, hour: Int): Int {
+        val history = runCatching { JSONObject(prefs.getString(CONTEXTUAL_HISTORY, "{}") ?: "{}") }
+            .getOrDefault(JSONObject())
+        return history.optInt("$appIdentity#${contextualTimeBucket(hour)}")
+    }
+
+    private fun contextualTimeBucket(hour: Int): Int = hour.coerceIn(0, 23) / 4
+
+    fun nextMindfulOpening(appIdentity: String, localDate: String): Int {
+        val safeIdentity = appIdentity
+        val dateKey = MINDFUL_OPEN_DATE_PREFIX + safeIdentity
+        val countKey = MINDFUL_OPEN_COUNT_PREFIX + safeIdentity
+        return MindfulOpeningCount.next(
+            storedDate = prefs.getString(dateKey, null),
+            storedCount = prefs.getInt(countKey, 0),
+            localDate = localDate,
+        )
+    }
+
     fun registerMindfulOpening(appIdentity: String, localDate: String): Int {
         val safeIdentity = appIdentity
         val dateKey = MINDFUL_OPEN_DATE_PREFIX + safeIdentity
         val countKey = MINDFUL_OPEN_COUNT_PREFIX + safeIdentity
-        val count = if (prefs.getString(dateKey, null) == localDate) {
-            prefs.getInt(countKey, 0) + 1
-        } else {
-            1
-        }
+        val count = nextMindfulOpening(appIdentity, localDate)
         prefs.edit {
             putString(dateKey, localDate)
             putInt(countKey, count)

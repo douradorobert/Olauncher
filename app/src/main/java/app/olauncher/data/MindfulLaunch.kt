@@ -11,6 +11,11 @@ object MindfulLaunchDelay {
             .coerceAtMost(MAX_DELAY_SECONDS)
 }
 
+object MindfulOpeningCount {
+    fun next(storedDate: String?, storedCount: Int, localDate: String): Int =
+        if (storedDate == localDate) storedCount + 1 else 1
+}
+
 data class PendingAppLaunch(
     val appName: String,
     val packageName: String,

@@ -138,6 +138,38 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:paddingVertical="8dp"
+                        android:text="@string/app_spacing"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/appSpacing"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        tools:text="1.0" />
+                </FrameLayout>
+
+                <TextView
+                    style="@style/TextSmallBold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/information_section"
+                    android:textColor="?attr/primaryColor" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
                         android:text="@string/agenda_on_home"
                         android:textColor="?attr/primaryColor" />
                     <TextView
@@ -224,6 +256,15 @@
                         android:text="@string/left" />
                 </FrameLayout>
 
+                <TextView
+                    style="@style/TextSmallBold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/wellbeing_section"
+                    android:textColor="?attr/primaryColor" />
+
                 <FrameLayout
                     android:id="@+id/screenTimeLayout"
                     android:layout_width="match_parent"
@@ -274,6 +315,150 @@
                         android:layout_marginEnd="4dp"
                         android:padding="8dp"
                         android:text="@string/_0" />
+                </FrameLayout>
+
+                <TextView
+                    style="@style/TextSmallBold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/suggestions_section"
+                    android:textColor="?attr/primaryColor" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/contextual_suggestions"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/contextualSuggestions"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/off" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/contextual_apps"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/contextualApps"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/_0" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/suggestion_display"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/suggestionDisplay"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/mixed" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/suggestion_rules"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/suggestionRules"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/configure_rule" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/home_location"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/homeLocation"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/set" />
+                </FrameLayout>
+
+                <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
+                    <TextView style="@style/TextSmall" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp" android:paddingVertical="8dp" android:text="@string/home_wifi"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView android:id="@+id/homeWifi" style="@style/TextSmallBold" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:layout_gravity="end|bottom" android:layout_marginEnd="4dp"
+                        android:padding="8dp" android:text="@string/set" />
+                </FrameLayout>
+
+                <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
+                    <TextView style="@style/TextSmall" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp" android:paddingVertical="8dp" android:text="@string/car_bluetooth"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView android:id="@+id/carBluetooth" style="@style/TextSmallBold" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:layout_gravity="end|bottom" android:layout_marginEnd="4dp"
+                        android:padding="8dp" android:text="@string/set" />
                 </FrameLayout>
 
             </LinearLayout>
@@ -576,6 +761,40 @@
                         android:text="@string/off" />
                 </FrameLayout>
                 -->
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="12dp"
+                android:background="@drawable/rounded_rect_shade_color"
+                android:orientation="vertical"
+                android:padding="12dp">
+                <TextView
+                    style="@style/TextLarge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/backup_restore"
+                    android:textColor="?attr/primaryColor" />
+                <TextView
+                    android:id="@+id/exportSettings"
+                    style="@style/TextSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:paddingVertical="8dp"
+                    android:text="@string/export_settings" />
+                <TextView
+                    android:id="@+id/importSettings"
+                    style="@style/TextSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:paddingVertical="8dp"
+                    android:text="@string/import_settings" />
             </LinearLayout>
 
             <LinearLayout

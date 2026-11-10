@@ -95,6 +95,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             Constants.FLAG_MINDFUL_APPS -> toggleMindfulApp(appModel)
+            Constants.FLAG_CONTEXTUAL_APPS -> toggleContextualApp(appModel)
 
             Constants.FLAG_SET_HOME_APP_1 -> saveHomeApp(appModel, 1)
             Constants.FLAG_SET_HOME_APP_2 -> saveHomeApp(appModel, 2)
@@ -389,6 +390,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefs.mindfulApps = selected
     }
 
+    private fun toggleContextualApp(appModel: AppModel) {
+        if (appModel !is AppModel.App || appModel.appPackage.isBlank()) return
+        val identity = appModel.appPackage + "|" + appModel.user
+        val selected = prefs.contextualApps.toMutableSet()
+        if (!selected.add(identity)) selected.remove(identity)
+        prefs.contextualApps = selected
+    }
+
     private fun requestAppLaunch(appModel: AppModel.App) {
         val identity = appModel.appPackage + "|" + appModel.user
         if (identity !in prefs.mindfulApps) {
@@ -397,10 +406,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val localDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        val openingNumber = prefs.registerMindfulOpening(identity, localDate)
+        val openingNumber = prefs.nextMindfulOpening(identity, localDate)
         val delaySeconds = MindfulLaunchDelay.secondsFor(openingNumber)
         if (delaySeconds == 0) {
-            launchApp(appModel.appPackage, appModel.activityClassName, appModel.user)
+            if (launchApp(appModel.appPackage, appModel.activityClassName, appModel.user)) {
+                prefs.registerMindfulOpening(identity, localDate)
+            }
             return
         }
         pendingMindfulLaunch.value = PendingAppLaunch(
@@ -414,10 +425,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun completeMindfulLaunch(pending: PendingAppLaunch) {
-        launchApp(pending.packageName, pending.activityClassName, pending.user)
+        if (launchApp(pending.packageName, pending.activityClassName, pending.user)) {
+            val identity = pending.packageName + "|" + pending.user
+            val localDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            prefs.registerMindfulOpening(identity, localDate)
+        }
     }
 
-    private fun launchApp(packageName: String, activityClassName: String?, userHandle: UserHandle) {
+    private fun launchApp(packageName: String, activityClassName: String?, userHandle: UserHandle): Boolean {
         val launcher = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         val activityInfo = launcher.getActivityList(packageName, userHandle)
 
@@ -430,7 +445,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             when (activityInfo.size) {
                 0 -> {
                     appContext.showToast(appContext.getString(R.string.app_not_found))
-                    return
+                    return false
                 }
 
                 1 -> ComponentName(packageName, activityInfo[0].name)
@@ -440,14 +455,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         try {
             launcher.startMainActivity(component, userHandle, null, null)
+            prefs.recordContextualLaunch(
+                "$packageName|$userHandle",
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+            )
+            return true
         } catch (e: SecurityException) {
             try {
                 launcher.startMainActivity(component, android.os.Process.myUserHandle(), null, null)
+                prefs.recordContextualLaunch(
+                    "$packageName|${android.os.Process.myUserHandle()}",
+                    Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                )
+                return true
             } catch (e: Exception) {
                 appContext.showToast(appContext.getString(R.string.unable_to_open_app))
+                return false
             }
         } catch (e: Exception) {
             appContext.showToast(appContext.getString(R.string.unable_to_open_app))
+            return false
         }
     }
 

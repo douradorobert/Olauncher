@@ -17,4 +17,15 @@ class MindfulLaunchDelayTest {
         assertEquals(10, MindfulLaunchDelay.secondsFor(6))
         assertEquals(10, MindfulLaunchDelay.secondsFor(20))
     }
+
+    @Test
+    fun `previewing next opening does not require changing stored count`() {
+        assertEquals(4, MindfulOpeningCount.next("2026-11-08", 3, "2026-11-08"))
+        assertEquals(4, MindfulOpeningCount.next("2026-11-08", 3, "2026-11-08"))
+    }
+
+    @Test
+    fun `first successful opening on a new day starts at one`() {
+        assertEquals(1, MindfulOpeningCount.next("2026-11-07", 20, "2026-11-08"))
+    }
 }
