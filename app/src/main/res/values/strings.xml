@@ -179,7 +179,7 @@
     <string name="rule_conditions_and" tools:ignore="MissingTranslation">All configured conditions must match (AND)</string>
     <string name="calendar_rule_window" tools:ignore="MissingTranslation">Calendar: any keyword matches (OR), from 3 hours before until the event ends</string>
     <string name="driving_rule_or" tools:ignore="MissingTranslation">Driving: Bluetooth and Android Auto are alternatives (OR)</string>
-    <string name="rule_info_message" tools:ignore="MissingTranslation">All configured groups must match (AND). At home and outside home are mutually exclusive options. If weekdays are selected, any selected day can match (OR); no selection means every day. Within calendar keywords, any word can match (OR). Bluetooth and Android Auto are also alternatives (OR). Calendar rules are active from 3 hours before until the event ends. Cooldown starts when the complete rule stops matching.</string>
+    <string name="rule_info_message" tools:ignore="MissingTranslation">All configured groups must match (AND). At home and outside home are mutually exclusive options. If weekdays are selected, any selected day can match (OR); no selection means every day. Within calendar keywords, any word can match (OR). Any selected Bluetooth device can match (OR), and Bluetooth and Android Auto are also alternatives (OR). Calendar rules are active from 3 hours before until the event ends. Cooldown starts when the complete rule stops matching.</string>
     <string name="rule_days_of_week" tools:ignore="MissingTranslation">Valid days</string>
     <string-array name="rule_day_letters" tools:ignore="MissingTranslation"><item>S</item><item>M</item><item>T</item><item>W</item><item>T</item><item>F</item><item>S</item></string-array>
     <string-array name="rule_day_names" tools:ignore="MissingTranslation"><item>Sunday</item><item>Monday</item><item>Tuesday</item><item>Wednesday</item><item>Thursday</item><item>Friday</item><item>Saturday</item></string-array>
@@ -197,6 +197,9 @@
     <string name="car_bluetooth" tools:ignore="MissingTranslation">Car Bluetooth</string>
     <string name="select_car_bluetooth" tools:ignore="MissingTranslation">Select a paired car device</string>
     <string name="driving_bluetooth_rule" tools:ignore="MissingTranslation">Driving: car Bluetooth</string>
+    <string name="bluetooth_devices_rule" tools:ignore="MissingTranslation">Bluetooth devices</string>
+    <string name="select_bluetooth_devices" tools:ignore="MissingTranslation">Pair a Bluetooth device first</string>
+    <string name="none" tools:ignore="MissingTranslation">None</string>
     <string name="driving_android_auto_rule" tools:ignore="MissingTranslation">Driving: Android Auto</string>
     <string name="cooldown_minutes_label" tools:ignore="MissingTranslation">Cooldown after rule stops matching (minutes)</string>
     <string name="set" tools:ignore="MissingTranslation">Set</string>

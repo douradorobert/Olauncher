@@ -2,7 +2,6 @@ package app.olauncher.ui
 
 import android.Manifest
 import android.app.admin.DevicePolicyManager
-import android.bluetooth.BluetoothManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -87,6 +86,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private val binding get() = _binding!!
     private val showPentastic = System.currentTimeMillis() % 2 == 0L
     private var dialog: OlDialog? = null
+    private var afterBluetoothPermission: (() -> Unit)? = null
     private val settingsExecutor = Executors.newSingleThreadExecutor()
     private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         prefs.agendaEnabled = granted
@@ -107,7 +107,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         else requireContext().showToast(R.string.wifi_details_unavailable, Toast.LENGTH_LONG)
     }
     private val bluetoothPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) showCarBluetoothPicker()
+        if (granted) afterBluetoothPermission?.invoke()
+        afterBluetoothPermission = null
     }
     private val createBackup = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri ?: return@registerForActivityResult
@@ -915,8 +916,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         var atHomeInput: TextView? = null
         var outsideHome = existing.outsideHome
         var atHome = existing.atHome
-        var drivingBluetooth = existing.drivingBluetooth
         var drivingAndroidAuto = existing.drivingAndroidAuto
+        val selectedBluetoothDevices = existing.bluetoothDeviceAddresses.toMutableSet().apply {
+            if (existing.drivingBluetooth) prefs.carBluetoothAddress.takeIf(String::isNotBlank)?.let(::add)
+        }
+        val preserveLegacyCarRule = existing.drivingBluetooth && prefs.carBluetoothAddress.isBlank()
         val selectedDays = existing.daysOfWeek.toMutableSet()
         val editor = requireContext().createDialog(
             title = R.string.configure_rule,
@@ -933,7 +937,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                         .split(',').map(String::trim).filter(String::isNotEmpty).toSet(),
                     outsideHome = outsideHome,
                     atHome = atHome,
-                    drivingBluetooth = drivingBluetooth,
+                    drivingBluetooth = preserveLegacyCarRule,
+                    bluetoothDeviceAddresses = selectedBluetoothDevices.toSet(),
                     drivingAndroidAuto = drivingAndroidAuto,
                     cooldownMinutes = cooldownInput?.text?.toString()?.toIntOrNull()?.coerceIn(0, 240) ?: 0,
                     daysOfWeek = selectedDays.toSet(),
@@ -1039,11 +1044,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 addView(TextView(context).apply {
                     setTextAppearance(R.style.TextSmall)
                     fun update() {
-                        text = "${getString(R.string.driving_bluetooth_rule)}: ${getString(if (drivingBluetooth) R.string.on else R.string.off)}"
+                        val devicesByAddress = DeviceContextSignals.pairedBluetoothDevices(context)
+                            .associate { it.address to it.name }
+                        val names = selectedBluetoothDevices.map { devicesByAddress[it] ?: it }.sorted()
+                        text = "${getString(R.string.bluetooth_devices_rule)}: ${names.ifEmpty { listOf(getString(R.string.none)) }.joinToString(", ")}"
                     }
                     update()
                     setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
-                    setOnClickListener { drivingBluetooth = !drivingBluetooth; update() }
+                    setOnClickListener {
+                        selectRuleBluetoothDevices(selectedBluetoothDevices, ::update)
+                    }
                 })
                 addView(TextView(context).apply {
                     setTextAppearance(R.style.TextSmall)
@@ -1119,15 +1129,56 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
         ) {
+            afterBluetoothPermission = ::showCarBluetoothPicker
             bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
             return
         }
         showCarBluetoothPicker()
     }
 
+    private fun selectRuleBluetoothDevices(selected: MutableSet<String>, onChanged: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            afterBluetoothPermission = { showRuleBluetoothPicker(selected, onChanged) }
+            bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            return
+        }
+        showRuleBluetoothPicker(selected, onChanged)
+    }
+
+    private fun showRuleBluetoothPicker(selected: MutableSet<String>, onChanged: () -> Unit) {
+        val devices = DeviceContextSignals.pairedBluetoothDevices(requireContext())
+        if (devices.isEmpty()) {
+            requireContext().showToast(R.string.select_bluetooth_devices)
+            return
+        }
+        requireContext().createDialog(R.string.bluetooth_devices_rule, R.string.close) { _ ->
+            LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+                devices.forEach { device ->
+                    addView(TextView(context).apply {
+                        setTextAppearance(R.style.TextSmall)
+                        fun updateSelectedState() {
+                            val isSelected = device.address in selected
+                            text = "${if (isSelected) "✓ " else ""}${device.name}"
+                            setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                        }
+                        updateSelectedState()
+                        setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
+                        setOnClickListener {
+                            if (!selected.add(device.address)) selected.remove(device.address)
+                            updateSelectedState()
+                            onChanged()
+                        }
+                    })
+                }
+            }
+        }.showRespectingStatusBar()
+    }
+
     private fun showCarBluetoothPicker() {
-        val adapter = (requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        val devices = runCatching { adapter?.bondedDevices.orEmpty().sortedBy { it.name.orEmpty() } }.getOrDefault(emptyList())
+        val devices = DeviceContextSignals.pairedBluetoothDevices(requireContext())
         if (devices.isEmpty()) {
             requireContext().showToast(R.string.select_car_bluetooth)
             return
@@ -1138,11 +1189,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 devices.forEach { device ->
                     addView(TextView(context).apply {
                         setTextAppearance(R.style.TextSmall)
-                        text = device.name ?: device.address
+                        text = device.name
                         setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
                         setOnClickListener {
                             prefs.carBluetoothAddress = device.address
-                            prefs.carBluetoothName = device.name ?: device.address
+                            prefs.carBluetoothName = device.name
                             binding.carBluetooth.text = prefs.carBluetoothName
                             dialog?.dismiss()
                         }

@@ -10,7 +10,7 @@ data class ContextualApp(
     val packageName: String,
     val activityClassName: String?,
     val user: String,
-    val launchesInTimeBucket: Int,
+    val usageScore: Int,
 ) {
     val identity: String get() = "$packageName|$user"
 }
@@ -23,17 +23,19 @@ data class ContextualRule(
     val outsideHome: Boolean = false,
     val atHome: Boolean = false,
     val drivingBluetooth: Boolean = false,
+    val bluetoothDeviceAddresses: Set<String> = emptySet(),
     val drivingAndroidAuto: Boolean = false,
     val cooldownMinutes: Int = 0,
     val daysOfWeek: Set<Int> = emptySet(),
 ) {
     val isEmpty: Boolean
         get() = startMinutes == null && endMinutes == null && eventKeywords.isEmpty() && !outsideHome && !atHome &&
-            !drivingBluetooth && !drivingAndroidAuto && daysOfWeek.isEmpty()
+            !drivingBluetooth && bluetoothDeviceAddresses.isEmpty() && !drivingAndroidAuto && daysOfWeek.isEmpty()
 }
 
 data class ContextualSignals(
     val bluetoothConnected: Boolean = false,
+    val connectedBluetoothAddresses: Set<String> = emptySet(),
     val androidAutoConnected: Boolean = false,
     val lastBluetoothActiveAt: Long = 0L,
     val lastAndroidAutoActiveAt: Long = 0L,
@@ -50,6 +52,9 @@ object ContextualSuggestions {
     fun availableSuggestionSlots(fixedAppCount: Int, maximumItems: Int): Int =
         (maximumItems - fixedAppCount).coerceAtLeast(0)
 
+    fun visiblePinnedPackages(packageNames: List<String>, visibleAppCount: Int): Set<String> =
+        packageNames.take(visibleAppCount.coerceAtLeast(0)).filter(String::isNotBlank).toSet()
+
     fun rank(
         candidates: List<ContextualApp>,
         event: CalendarEvent?,
@@ -61,7 +66,7 @@ object ContextualSuggestions {
         limit: Int = 3,
         signals: ContextualSignals = ContextualSignals(),
         now: Long = System.currentTimeMillis(),
-        minimumScore: Int = 10,
+        minimumScore: Int = 20,
         lastRuleMatchedAt: Map<String, Long> = emptyMap(),
         onRuleMatched: (String, Long) -> Unit = { _, _ -> },
     ): List<ContextualApp> {
@@ -82,7 +87,7 @@ object ContextualSuggestions {
                     if (!matchesNow && !inCooldown) return@mapNotNull null
                 }
                 val appText = normalize(candidate.label + " " + candidate.packageName)
-                var score = candidate.launchesInTimeBucket * 10
+                var score = candidate.usageScore
                 if (rule != null && !rule.isEmpty) score += 200
                 if (isHealthEvent && healthAppTerms.any(appText::contains)) score += 100
                 if (hasDestination && navigationAppTerms.any(appText::contains)) score += 80
@@ -113,8 +118,11 @@ object ContextualSuggestions {
             val inRange = if (start <= end) currentMinutes in start..end else currentMinutes >= start || currentMinutes <= end
             if (!inRange) return false
         }
-        if (rule.drivingBluetooth || rule.drivingAndroidAuto) {
-            val bluetoothValid = rule.drivingBluetooth && signals.bluetoothConnected
+        if (rule.drivingBluetooth || rule.bluetoothDeviceAddresses.isNotEmpty() || rule.drivingAndroidAuto) {
+            val selectedDeviceConnected = rule.bluetoothDeviceAddresses.any { selected ->
+                signals.connectedBluetoothAddresses.any { it.equals(selected, ignoreCase = true) }
+            }
+            val bluetoothValid = rule.drivingBluetooth && signals.bluetoothConnected || selectedDeviceConnected
             val androidAutoValid = rule.drivingAndroidAuto && signals.androidAutoConnected
             if (!bluetoothValid && !androidAutoValid) return false
         }

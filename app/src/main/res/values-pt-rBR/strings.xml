@@ -186,7 +186,7 @@
     <string name="rule_conditions_and">Todas as condições configuradas precisam corresponder (E)</string>
     <string name="calendar_rule_window">Calendário: qualquer palavra corresponde (OU), de 3 horas antes até o fim do evento</string>
     <string name="driving_rule_or">Dirigindo: Bluetooth e Android Auto são alternativas (OU)</string>
-    <string name="rule_info_message">Todos os grupos configurados precisam corresponder (E). Em casa e fora de casa são opções mutuamente exclusivas. Se houver dias selecionados, qualquer um deles pode corresponder (OU); nenhum selecionado significa todos os dias. Nas palavras do calendário, qualquer palavra pode corresponder (OU). Bluetooth e Android Auto também são alternativas (OU). Regras de calendário valem de 3 horas antes até o fim do evento. O cooldown começa quando a regra completa deixa de corresponder.</string>
+    <string name="rule_info_message">Todos os grupos configurados precisam corresponder (E). Em casa e fora de casa são opções mutuamente exclusivas. Se houver dias selecionados, qualquer um deles pode corresponder (OU); nenhum selecionado significa todos os dias. Nas palavras do calendário, qualquer palavra pode corresponder (OU). Qualquer dispositivo Bluetooth selecionado pode corresponder (OU), e Bluetooth e Android Auto também são alternativas (OU). Regras de calendário valem de 3 horas antes até o fim do evento. O cooldown começa quando a regra completa deixa de corresponder.</string>
     <string name="rule_days_of_week">Dias válidos</string>
     <string-array name="rule_day_letters"><item>D</item><item>S</item><item>T</item><item>Q</item><item>Q</item><item>S</item><item>S</item></string-array>
     <string-array name="rule_day_names"><item>Domingo</item><item>Segunda-feira</item><item>Terça-feira</item><item>Quarta-feira</item><item>Quinta-feira</item><item>Sexta-feira</item><item>Sábado</item></string-array>
@@ -205,6 +205,9 @@
     <string name="car_bluetooth">Bluetooth do carro</string>
     <string name="select_car_bluetooth">Selecione um dispositivo pareado do carro</string>
     <string name="driving_bluetooth_rule">Dirigindo: Bluetooth do carro</string>
+    <string name="bluetooth_devices_rule">Dispositivos Bluetooth</string>
+    <string name="select_bluetooth_devices">Pareie primeiro um dispositivo Bluetooth</string>
+    <string name="none">Nenhum</string>
     <string name="driving_android_auto_rule">Dirigindo: Android Auto</string>
     <string name="cooldown_minutes_label">Cooldown após a regra deixar de corresponder (minutos)</string>
     <string name="set">Definir</string>

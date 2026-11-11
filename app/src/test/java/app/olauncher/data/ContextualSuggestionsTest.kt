@@ -6,7 +6,7 @@ import org.junit.Test
 import java.util.Calendar
 
 class ContextualSuggestionsTest {
-    private fun app(label: String, launches: Int = 0) = ContextualApp(label, label, null, "user", launches)
+    private fun app(label: String, usageScore: Int = 0) = ContextualApp(label, label, null, "user", usageScore)
 
     @Test
     fun `fixed apps and suggestions never exceed home limit`() {
@@ -16,8 +16,32 @@ class ContextualSuggestionsTest {
     }
 
     @Test
+    fun `hidden home slots do not exclude suggestion candidates`() {
+        assertEquals(
+            setOf("photos", "whatsapp", "gmail", "firefox"),
+            ContextualSuggestions.visiblePinnedPackages(
+                packageNames = listOf("photos", "whatsapp", "gmail", "firefox", "teams", "maps", "", ""),
+                visibleAppCount = 4,
+            ),
+        )
+    }
+
+    @Test
     fun `low score candidates stay hidden`() {
         assertEquals(emptyList<ContextualApp>(), ContextualSuggestions.rank(listOf(app("Unused")), null))
+    }
+
+    @Test
+    fun `one recent launch is below the learned suggestion threshold`() {
+        assertEquals(emptyList<ContextualApp>(), ContextualSuggestions.rank(listOf(app("One launch", 10)), null))
+    }
+
+    @Test
+    fun `two recent launches reach the learned suggestion threshold`() {
+        assertEquals(
+            listOf("Two launches"),
+            ContextualSuggestions.rank(listOf(app("Two launches", 20)), null).map { it.label },
+        )
     }
 
     @Test
@@ -57,7 +81,7 @@ class ContextualSuggestionsTest {
 
     @Test
     fun `learned time bucket usage determines default order`() {
-        val ranked = ContextualSuggestions.rank(listOf(app("Spotify", 4), app("Mfit", 7), app("Wellhub", 2)), null)
+        val ranked = ContextualSuggestions.rank(listOf(app("Spotify", 40), app("Mfit", 70), app("Wellhub", 20)), null)
         assertEquals(listOf("Mfit", "Spotify", "Wellhub"), ranked.map { it.label })
     }
 
@@ -117,5 +141,35 @@ class ContextualSuggestionsTest {
         val rules = mapOf(spotify.identity to ContextualRule(spotify.identity, daysOfWeek = setOf(Calendar.MONDAY, Calendar.FRIDAY)))
         assertEquals(listOf("Spotify"), ContextualSuggestions.rank(listOf(spotify), null, currentDayOfWeek = Calendar.MONDAY, rules = rules).map { it.label })
         assertEquals(emptyList<ContextualApp>(), ContextualSuggestions.rank(listOf(spotify), null, currentDayOfWeek = Calendar.TUESDAY, rules = rules))
+    }
+
+    @Test
+    fun `any selected bluetooth device satisfies the rule`() {
+        val spotify = app("Spotify")
+        val rules = mapOf(
+            spotify.identity to ContextualRule(
+                spotify.identity,
+                bluetoothDeviceAddresses = setOf("HEADPHONES", "CAR"),
+            ),
+        )
+
+        assertEquals(
+            listOf("Spotify"),
+            ContextualSuggestions.rank(
+                listOf(spotify),
+                null,
+                rules = rules,
+                signals = ContextualSignals(connectedBluetoothAddresses = setOf("HEADPHONES")),
+            ).map { it.label },
+        )
+        assertEquals(
+            emptyList<ContextualApp>(),
+            ContextualSuggestions.rank(
+                listOf(spotify),
+                null,
+                rules = rules,
+                signals = ContextualSignals(connectedBluetoothAddresses = setOf("WATCH")),
+            ),
+        )
     }
 }

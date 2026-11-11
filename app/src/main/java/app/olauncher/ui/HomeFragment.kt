@@ -68,6 +68,7 @@ import app.olauncher.helper.showToast
 import app.olauncher.helper.createDialog
 import app.olauncher.helper.OlDialog
 import app.olauncher.listener.OnSwipeTouchListener
+import app.olauncher.listener.TextHitTarget
 import app.olauncher.listener.ViewSwipeTouchListener
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -84,6 +85,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private var upcomingEvents: List<CalendarEvent> = emptyList()
     private var currentContextLocation: Location? = null
     private var carBluetoothConnected = false
+    private var connectedBluetoothAddresses: Set<String> = emptySet()
     private var androidAutoConnected = false
     private var batteryReceiverRegistered = false
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -519,7 +521,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
         val launcher = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val pinnedPackages = (1..8).map(prefs::getAppPackage).filter(String::isNotBlank).toSet()
+        val pinnedPackages = ContextualSuggestions.visiblePinnedPackages(
+            packageNames = (1..Constants.MAX_HOME_ITEMS).map(prefs::getAppPackage),
+            visibleAppCount = prefs.homeAppsNum,
+        )
         val candidates = prefs.contextualApps.mapNotNull { identity ->
             val separator = identity.indexOf('|')
             if (separator <= 0) return@mapNotNull null
@@ -533,7 +538,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 packageName = packageName,
                 activityClassName = activity.componentName.className,
                 user = userString,
-                launchesInTimeBucket = prefs.contextualLaunches(identity, hour),
+                usageScore = prefs.contextualUsageScore(identity, hour),
             )
         }
         val now = System.currentTimeMillis()
@@ -572,6 +577,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             limit = suggestionLimit,
             signals = ContextualSignals(
                 bluetoothConnected = carBluetoothConnected,
+                connectedBluetoothAddresses = connectedBluetoothAddresses,
                 androidAutoConnected = androidAutoConnected,
                 lastBluetoothActiveAt = prefs.lastCarBluetoothActiveAt,
                 lastAndroidAutoActiveAt = prefs.lastAndroidAutoActiveAt,
@@ -594,6 +600,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                     val verticalPadding = homeAppVerticalPadding()
                     setPadding(0, verticalPadding, 0, verticalPadding)
                     setOnClickListener { launchApp(app.label, app.packageName, app.activityClassName, app.user) }
+                    setOnTouchListener(getSuggestionSwipeTouchListener(requireContext(), this, app))
                 }
                 val target = fixedApps.getOrNull((index * 2).coerceAtMost((fixedApps.size - 1).coerceAtLeast(0)))
                 val insertionIndex = target?.let(binding.homeAppsLayout::indexOfChild)?.plus(1)
@@ -610,6 +617,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 text = app.label
                 setPadding(if (index == 0) 0 else 10.dpToPx(), 6.dpToPx(), 10.dpToPx(), 6.dpToPx())
                 setOnClickListener { launchApp(app.label, app.packageName, app.activityClassName, app.user) }
+                setOnTouchListener(getSuggestionSwipeTouchListener(requireContext(), this, app))
             })
         }
         binding.contextSuggestions.isVisible = suggestions.isNotEmpty()
@@ -617,14 +625,18 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     private fun refreshCarBluetoothConnection() {
-        DeviceContextSignals.isCarBluetoothConnected(
+        val selectedAddresses = prefs.contextualRules().values
+            .flatMapTo(mutableSetOf()) { it.bluetoothDeviceAddresses }
+            .apply { prefs.carBluetoothAddress.takeIf(String::isNotBlank)?.let(::add) }
+        DeviceContextSignals.connectedBluetoothAddresses(
             requireContext().applicationContext,
-            prefs.carBluetoothAddress,
-        ) { connected ->
+            selectedAddresses,
+        ) { connectedAddresses ->
             activity?.runOnUiThread {
                 val wasConnected = carBluetoothConnected
-                carBluetoothConnected = connected
-                if (connected || wasConnected) prefs.lastCarBluetoothActiveAt = System.currentTimeMillis()
+                connectedBluetoothAddresses = connectedAddresses
+                carBluetoothConnected = connectedAddresses.any { it.equals(prefs.carBluetoothAddress, ignoreCase = true) }
+                if (carBluetoothConnected || wasConnected) prefs.lastCarBluetoothActiveAt = System.currentTimeMillis()
                 if (_binding != null) refreshContextualSuggestions()
             }
         }
@@ -1171,18 +1183,43 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             }
 
             override fun isTapInsideHitTarget(view: View, event: android.view.MotionEvent): Boolean {
-                val textView = view as? TextView ?: return true
-                val textLayout = textView.layout ?: return false
-                if (textLayout.lineCount == 0 || textView.text.isNullOrEmpty()) return false
-                val horizontalMargin = 8.dpToPx()
-                val verticalMargin = 4.dpToPx()
-                val left = textView.compoundPaddingLeft + textLayout.getLineLeft(0) - horizontalMargin
-                val right = textView.compoundPaddingLeft + textLayout.getLineRight(0) + horizontalMargin
-                val top = textView.extendedPaddingTop + textLayout.getLineTop(0) - verticalMargin
-                val bottom = textView.extendedPaddingTop + textLayout.getLineBottom(0) + verticalMargin
-                return event.x in left..right && event.y in top.toFloat()..bottom.toFloat()
+                return isTapInsideTextHitTarget(view, event)
             }
         }
+    }
+
+    private fun getSuggestionSwipeTouchListener(
+        context: Context,
+        view: TextView,
+        app: ContextualApp,
+    ): View.OnTouchListener = object : ViewSwipeTouchListener(context, view) {
+        override fun onSwipeLeft() = openSwipeLeftApp()
+        override fun onSwipeRight() = openSwipeRightApp()
+        override fun onSwipeUp() = showAppList(Constants.FLAG_LAUNCH_APP)
+        override fun onSwipeDown() = expandNotificationDrawer(requireContext())
+
+        override fun onClick(view: View) {
+            launchApp(app.label, app.packageName, app.activityClassName, app.user)
+        }
+
+        override fun isTapInsideHitTarget(view: View, event: android.view.MotionEvent): Boolean =
+            isTapInsideTextHitTarget(view, event)
+    }
+
+    private fun isTapInsideTextHitTarget(view: View, event: android.view.MotionEvent): Boolean {
+        val textView = view as? TextView ?: return true
+        val textLayout = textView.layout ?: return false
+        if (textLayout.lineCount == 0 || textView.text.isNullOrEmpty()) return false
+        return TextHitTarget.contains(
+            x = event.x,
+            y = event.y,
+            textLeft = textView.compoundPaddingLeft + textLayout.getLineLeft(0),
+            textRight = textView.compoundPaddingLeft + textLayout.getLineRight(0),
+            textTop = (textView.extendedPaddingTop + textLayout.getLineTop(0)).toFloat(),
+            textBottom = (textView.extendedPaddingTop + textLayout.getLineBottom(0)).toFloat(),
+            horizontalMargin = 8.dpToPx(),
+            verticalMargin = 4.dpToPx(),
+        )
     }
 
     override fun onDestroyView() {
