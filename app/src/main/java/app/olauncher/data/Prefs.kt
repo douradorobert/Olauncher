@@ -365,6 +365,7 @@ class Prefs(context: Context) {
     fun recordContextualLaunch(
         appIdentity: String,
         hour: Int,
+        minute: Int,
         nowMillis: Long = System.currentTimeMillis(),
         timeZone: TimeZone = TimeZone.getDefault(),
     ) {
@@ -373,6 +374,7 @@ class Prefs(context: Context) {
             serialized = prefs.getString(CONTEXTUAL_HISTORY, "{}").orEmpty(),
             appIdentity = appIdentity,
             hour = hour,
+            minute = minute,
             nowMillis = nowMillis,
             timeZone = timeZone,
             recordLaunch = true,
@@ -383,6 +385,7 @@ class Prefs(context: Context) {
     fun contextualUsageScore(
         appIdentity: String,
         hour: Int,
+        minute: Int,
         nowMillis: Long = System.currentTimeMillis(),
         timeZone: TimeZone = TimeZone.getDefault(),
     ): Int {
@@ -390,6 +393,7 @@ class Prefs(context: Context) {
             serialized = prefs.getString(CONTEXTUAL_HISTORY, "{}").orEmpty(),
             appIdentity = appIdentity,
             hour = hour,
+            minute = minute,
             nowMillis = nowMillis,
             timeZone = timeZone,
         )

@@ -13,6 +13,7 @@ object ContextualUsageRepository {
         serialized: String,
         appIdentity: String,
         hour: Int,
+        minute: Int,
         nowMillis: Long,
         timeZone: TimeZone,
         recordLaunch: Boolean = false,
@@ -21,14 +22,14 @@ object ContextualUsageRepository {
         val decoded = ContextualUsageHistoryCodec.decode(serialized, currentDay)
         val pruned = ContextualUsageHistory.prune(decoded.entries, currentDay)
         val updated = if (recordLaunch) {
-            ContextualUsageHistory.record(pruned, appIdentity, hour, 0, currentDay)
+            ContextualUsageHistory.record(pruned, appIdentity, hour, minute, currentDay)
         } else {
             pruned
         }
         val changed = decoded.requiresRewrite || updated != decoded.entries
         return ContextualUsageUpdate(
             serialized = if (changed) ContextualUsageHistoryCodec.encode(updated) else serialized,
-            score = ContextualUsageHistory.score(updated, appIdentity, hour, 0, currentDay),
+            score = ContextualUsageHistory.score(updated, appIdentity, hour, minute, currentDay),
             changed = changed,
         )
     }
