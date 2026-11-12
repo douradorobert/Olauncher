@@ -14,8 +14,21 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 
 data class WifiNetwork(val bssid: String, val name: String)
+data class BluetoothDeviceDescriptor(val address: String, val name: String)
 
 object DeviceContextSignals {
+    fun pairedBluetoothDevices(context: Context): List<BluetoothDeviceDescriptor> {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return emptyList()
+        val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter ?: return emptyList()
+        return runCatching {
+            adapter.bondedDevices.map { device ->
+                BluetoothDeviceDescriptor(device.address, device.name ?: device.address)
+            }.sortedBy { it.name.lowercase() }
+        }.getOrDefault(emptyList())
+    }
+
     fun matchesHomeWifi(current: WifiNetwork?, savedNames: Set<String>, savedBssids: Set<String>): Boolean {
         if (current == null) return false
         return savedNames.any { it.isNotBlank() && it == current.name } ||
@@ -59,30 +72,48 @@ object DeviceContextSignals {
     }
 
     fun isCarBluetoothConnected(context: Context, address: String, result: (Boolean) -> Unit) {
-        if (address.isBlank() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+        connectedBluetoothAddresses(context, setOf(address)) { connected -> result(connected.isNotEmpty()) }
+    }
+
+    fun connectedBluetoothAddresses(context: Context, addresses: Set<String>, result: (Set<String>) -> Unit) {
+        val requested = addresses.filter(String::isNotBlank).toSet()
+        if (requested.isEmpty() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
         ) {
-            result(false)
+            result(emptySet())
             return
         }
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
         if (adapter == null || !adapter.isEnabled) {
-            result(false)
+            result(emptySet())
             return
         }
-        fun query(profile: Int, fallback: () -> Unit) {
+        fun query(profile: Int, complete: (Set<String>) -> Unit) {
             val listener = object : BluetoothProfile.ServiceListener {
                 override fun onServiceConnected(profileType: Int, proxy: BluetoothProfile) {
-                    val connected = proxy.connectedDevices.any { it.address.equals(address, ignoreCase = true) }
+                    val connected = proxy.connectedDevices.map { it.address }.toSet()
                     adapter.closeProfileProxy(profileType, proxy)
-                    if (connected) result(true) else fallback()
+                    complete(connected)
                 }
                 override fun onServiceDisconnected(profile: Int) = Unit
             }
-            if (!adapter.getProfileProxy(context, listener, profile)) fallback()
+            if (!adapter.getProfileProxy(context, listener, profile)) complete(emptySet())
         }
-        query(BluetoothProfile.A2DP) {
-            query(BluetoothProfile.HEADSET) { result(false) }
+        val profiles = buildList {
+            add(BluetoothProfile.A2DP)
+            add(BluetoothProfile.HEADSET)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) add(BluetoothProfile.HEARING_AID)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(BluetoothProfile.LE_AUDIO)
         }
+        fun queryNext(index: Int, connected: Set<String>) {
+            if (index >= profiles.size) {
+                result(requested.filterTo(mutableSetOf()) { requestedAddress ->
+                    connected.any { it.equals(requestedAddress, ignoreCase = true) }
+                })
+                return
+            }
+            query(profiles[index]) { profileAddresses -> queryNext(index + 1, connected + profileAddresses) }
+        }
+        queryNext(0, emptySet())
     }
 }

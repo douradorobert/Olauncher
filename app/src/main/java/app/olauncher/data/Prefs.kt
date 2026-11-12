@@ -5,8 +5,7 @@ import android.content.SharedPreferences
 import android.view.Gravity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
-import org.json.JSONObject
-import org.json.JSONArray
+import java.util.TimeZone
 
 class Prefs(context: Context) {
     private val PREFS_FILENAME = "app.olauncher"
@@ -293,54 +292,13 @@ class Prefs(context: Context) {
         set(value) = prefs.edit { putBoolean(CONTEXTUAL_MIXED, value).apply() }
 
     fun contextualRules(): Map<String, ContextualRule> {
-        val array = runCatching { JSONArray(prefs.getString(CONTEXTUAL_RULES, "[]") ?: "[]") }.getOrDefault(JSONArray())
-        return buildMap {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
-                val identity = item.optString("app")
-                if (identity.isBlank()) continue
-                val keywords = item.optJSONArray("keywords")
-                val days = item.optJSONArray("daysOfWeek")
-                put(identity, ContextualRule(
-                    appIdentity = identity,
-                    startMinutes = item.optInt("start", -1).takeIf { it >= 0 },
-                    endMinutes = item.optInt("end", -1).takeIf { it >= 0 },
-                    eventKeywords = buildSet {
-                        if (keywords != null) for (keywordIndex in 0 until keywords.length()) add(keywords.getString(keywordIndex))
-                    },
-                    outsideHome = item.optBoolean("outsideHome"),
-                    atHome = item.optBoolean("atHome"),
-                    drivingBluetooth = item.optBoolean("drivingBluetooth"),
-                    drivingAndroidAuto = item.optBoolean("drivingAndroidAuto"),
-                    cooldownMinutes = item.optInt("cooldownMinutes", item.optInt("drivingCooldownMinutes")),
-                    daysOfWeek = buildSet {
-                        if (days != null) for (dayIndex in 0 until days.length()) {
-                            days.optInt(dayIndex).takeIf { it in 1..7 }?.let(::add)
-                        }
-                    },
-                ))
-            }
-        }
+        return ContextualRuleCodec.decode(prefs.getString(CONTEXTUAL_RULES, "[]") ?: "[]")
     }
 
     fun setContextualRule(rule: ContextualRule) {
         val rules = contextualRules().toMutableMap()
         if (rule.isEmpty) rules.remove(rule.appIdentity) else rules[rule.appIdentity] = rule
-        val array = JSONArray()
-        rules.values.forEach { value ->
-            array.put(JSONObject()
-                .put("app", value.appIdentity)
-                .put("start", value.startMinutes ?: -1)
-                .put("end", value.endMinutes ?: -1)
-                .put("keywords", JSONArray(value.eventKeywords.toList()))
-                .put("outsideHome", value.outsideHome)
-                .put("atHome", value.atHome)
-                .put("drivingBluetooth", value.drivingBluetooth)
-                .put("drivingAndroidAuto", value.drivingAndroidAuto)
-                .put("cooldownMinutes", value.cooldownMinutes)
-                .put("daysOfWeek", JSONArray(value.daysOfWeek.sorted())))
-        }
-        prefs.edit { putString(CONTEXTUAL_RULES, array.toString()).apply() }
+        prefs.edit { putString(CONTEXTUAL_RULES, ContextualRuleCodec.encode(rules)).apply() }
     }
 
     var homeLocationSet: Boolean
@@ -404,22 +362,40 @@ class Prefs(context: Context) {
         prefs.edit { putLong(CONTEXTUAL_RULE_MATCH_PREFIX + appIdentity, matchedAt).apply() }
     }
 
-    fun recordContextualLaunch(appIdentity: String, hour: Int) {
+    fun recordContextualLaunch(
+        appIdentity: String,
+        hour: Int,
+        nowMillis: Long = System.currentTimeMillis(),
+        timeZone: TimeZone = TimeZone.getDefault(),
+    ) {
         if (!contextualSuggestionsEnabled || appIdentity !in contextualApps) return
-        val history = runCatching { JSONObject(prefs.getString(CONTEXTUAL_HISTORY, "{}") ?: "{}") }
-            .getOrDefault(JSONObject())
-        val key = "$appIdentity#${contextualTimeBucket(hour)}"
-        history.put(key, history.optInt(key) + 1)
-        prefs.edit { putString(CONTEXTUAL_HISTORY, history.toString()).apply() }
+        val update = ContextualUsageRepository.updateSerializedHistory(
+            serialized = prefs.getString(CONTEXTUAL_HISTORY, "{}").orEmpty(),
+            appIdentity = appIdentity,
+            hour = hour,
+            nowMillis = nowMillis,
+            timeZone = timeZone,
+            recordLaunch = true,
+        )
+        if (update.changed) prefs.edit { putString(CONTEXTUAL_HISTORY, update.serialized) }
     }
 
-    fun contextualLaunches(appIdentity: String, hour: Int): Int {
-        val history = runCatching { JSONObject(prefs.getString(CONTEXTUAL_HISTORY, "{}") ?: "{}") }
-            .getOrDefault(JSONObject())
-        return history.optInt("$appIdentity#${contextualTimeBucket(hour)}")
+    fun contextualUsageScore(
+        appIdentity: String,
+        hour: Int,
+        nowMillis: Long = System.currentTimeMillis(),
+        timeZone: TimeZone = TimeZone.getDefault(),
+    ): Int {
+        val update = ContextualUsageRepository.updateSerializedHistory(
+            serialized = prefs.getString(CONTEXTUAL_HISTORY, "{}").orEmpty(),
+            appIdentity = appIdentity,
+            hour = hour,
+            nowMillis = nowMillis,
+            timeZone = timeZone,
+        )
+        if (update.changed) prefs.edit { putString(CONTEXTUAL_HISTORY, update.serialized) }
+        return update.score
     }
-
-    private fun contextualTimeBucket(hour: Int): Int = hour.coerceIn(0, 23) / 4
 
     fun nextMindfulOpening(appIdentity: String, localDate: String): Int {
         val safeIdentity = appIdentity

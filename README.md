@@ -1,43 +1,50 @@
-![Olauncher](https://repository-images.githubusercontent.com/278638069/db0acb80-661b-11eb-803e-926cae5dccb4)
+# Olauncher
 
+Olauncher é um launcher minimalista para Android, sem ícones na tela inicial, criado para reduzir distrações e manter o acesso aos aplicativos simples e rápido.
 
-# Olauncher | Minimal AF Launcher
-AF stands for Ad-Free! :D
+Este repositório contém um **fork independente e modificado** do Olauncher. Ele mantém o nome porque ainda compartilha a base e grande parte da experiência do projeto original, mas não é a distribuição oficial e possui decisões e funcionalidades próprias.
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-    alt="Get it on Play Store"
-    height="80" align="middle">](https://play.google.com/store/apps/details?id=app.olauncher)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80" align="middle">](https://f-droid.org/packages/app.olauncher)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png"
-    alt="Get it on IzzyOnDroid"
-    height="54" hspace="13" align="middle">](https://apt.izzysoft.de/packages/app.olauncher)
+## Principais recursos
 
-#### Install using [Play Store,](https://play.google.com/store/apps/details?id=app.olauncher) [F-Droid,](https://f-droid.org/packages/app.olauncher) [IzzyOnDroid](https://apt.izzysoft.de/packages/app.olauncher) or the [latest APK.](https://github.com/tanujnotes/Olauncher/releases/)
+- Tela inicial minimalista com nomes de aplicativos.
+- Gestos configuráveis para abrir aplicativos, notificações e bloqueio de tela.
+- Busca e abertura rápida no menu de aplicativos.
+- Temas claro e escuro, tamanho, peso e alinhamento de texto configuráveis.
+- Ocultação e renomeação de aplicativos.
+- Suporte a perfis de trabalho, espaço privado e atalhos fixados.
+- Papéis de parede diários opcionais.
+- Pausa consciente antes de abrir aplicativos selecionados.
+- Sugestões contextuais baseadas em uso, horário e contexto do dispositivo.
+- Agenda e clima opcionais na tela inicial.
+- Backup e restauração das configurações.
 
-To maintain the simplicity of the launcher, a few niche features are available but hidden.
+## Diferenças desta versão
 
-Please check out the **[About](https://tanujnotes.substack.com/p/olauncher-minimal-af-launcher?utm_source=github)** page in the Olauncher settings for a complete list of features and **FAQs**.
+Esta versão evolui de forma independente e inclui recursos que podem não existir no projeto original, especialmente sugestões contextuais, controles de bem-estar, integrações informativas na tela inicial e opções adicionais de personalização.
 
-##
+Ela também remove da interface promoções, recomendações de outros aplicativos e links comerciais associados à distribuição original.
 
-License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
+## Compilação
 
-Developer: [@tanujnotes](https://x.com/tanujnotes)
+Abra o projeto em uma versão atual do Android Studio com o Android SDK instalado ou compile pelo terminal:
 
-##
+```bash
+./gradlew assembleDebug
+```
 
-### Other apps from team Olauncher:
+O APK de desenvolvimento será gerado em `app/build/outputs/apk/debug/`.
 
-- [Pro Launcher](https://play.google.com/store/apps/details?id=app.prolauncher) - Pro version of Olauncher with extra features like widgets, weather, folders, etc.
+O código, as mudanças e as versões desta distribuição ficam em:
 
-- [Note to Self](https://play.google.com/store/apps/details?id=com.makenotetoself) - Free and [open source](https://github.com/jeerovan/ntsapp) notes app with chat like interface and end-to-end encryption.
+- [Repositório douradorobert/Olauncher](https://github.com/douradorobert/Olauncher)
+- [Releases deste fork](https://github.com/douradorobert/Olauncher/releases)
 
-- [Pentastic](https://play.google.com/store/apps/details?id=app.pentastic) - Free and [open source](https://github.com/tanujnotes/Pentastic). A minimal tasks, notes and reminders app.
+## Créditos e origem
 
-- [Supernova](https://github.com/tanujnotes/Supernova) - Free and [open source](https://github.com/tanujnotes/Supernova) alternative of Nova Launcher.
+Este projeto é baseado no [Olauncher original](https://github.com/tanujnotes/Olauncher), criado por [Tanuj](https://x.com/tanujnotes). A base do aplicativo e a maior parte do trabalho original pertencem a Tanuj e aos contribuidores do projeto upstream.
 
-##
+As modificações mantidas neste repositório não devem ser atribuídas aos autores do projeto original. Da mesma forma, este fork não pretende substituir nem se apresentar como a versão oficial.
 
-Thank you!
+## Licença
+
+O projeto continua distribuído sob a [GNU GPLv3](LICENSE). Consulte o arquivo de licença para conhecer os termos de uso, modificação e redistribuição.

@@ -2,7 +2,6 @@ package app.olauncher.ui
 
 import android.Manifest
 import android.app.admin.DevicePolicyManager
-import android.bluetooth.BluetoothManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -47,7 +46,6 @@ import app.olauncher.data.ContextualRule
 import app.olauncher.data.DeviceContextSignals
 import app.olauncher.data.Prefs
 import app.olauncher.data.SettingsBackup
-import app.olauncher.databinding.DialogNotWorkingBinding
 import app.olauncher.databinding.DialogTextSizeBinding
 import app.olauncher.databinding.FragmentSettingsBinding
 import app.olauncher.helper.appUsagePermissionGranted
@@ -62,9 +60,7 @@ import app.olauncher.helper.isOlauncherDefault
 import app.olauncher.helper.isTablet
 import app.olauncher.helper.openAppInfo
 import app.olauncher.helper.openUrl
-import app.olauncher.helper.rateApp
 import app.olauncher.helper.setPlainWallpaper
-import app.olauncher.helper.shareApp
 import app.olauncher.helper.OlDialog
 import app.olauncher.helper.showPopupMenu
 import app.olauncher.helper.showStatusBar
@@ -85,8 +81,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
-    private val showPentastic = System.currentTimeMillis() % 2 == 0L
     private var dialog: OlDialog? = null
+    private var afterBluetoothPermission: (() -> Unit)? = null
     private val settingsExecutor = Executors.newSingleThreadExecutor()
     private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         prefs.agendaEnabled = granted
@@ -107,7 +103,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         else requireContext().showToast(R.string.wifi_details_unavailable, Toast.LENGTH_LONG)
     }
     private val bluetoothPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) showCarBluetoothPicker()
+        if (granted) afterBluetoothPermission?.invoke()
+        afterBluetoothPermission = null
     }
     private val createBackup = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri ?: return@registerForActivityResult
@@ -148,7 +145,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         checkAdminPermission()
 
         binding.homeAppsNum.text = prefs.homeAppsNum.toString()
-        populateProMessage()
         populateKeyboardText()
         populateScreenTimeOnOff()
         populateMindfulApps()
@@ -165,18 +161,13 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateDateTime()
         populateInfoWidgets()
         populateSwipeApps()
-        populateActionHints()
         initClickListeners()
         initObservers()
-
-        if (showPentastic)
-            binding.footer.text = getText(R.string.new_app_minimal_todo_lists)
     }
 
     override fun onClick(view: View) {
         when (view.id) {
             R.id.olauncherHiddenApps -> showHiddenApps()
-            R.id.moreFeatures -> viewModel.showDialog.postValue(Constants.Dialog.PRO_MESSAGE)
             R.id.screenTimeOnOff -> viewModel.showDialog.postValue(Constants.Dialog.DIGITAL_WELLBEING)
             R.id.mindfulApps -> showAppListIfEnabled(Constants.FLAG_MINDFUL_APPS)
             R.id.contextualSuggestions -> toggleContextualSuggestions()
@@ -210,25 +201,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.swipeLeftApp -> showAppListIfEnabled(Constants.FLAG_SET_SWIPE_LEFT_APP)
             R.id.swipeRightApp -> showAppListIfEnabled(Constants.FLAG_SET_SWIPE_RIGHT_APP)
 
-            R.id.aboutOlauncher -> {
-                prefs.aboutClicked = true
-                requireContext().openUrl(Constants.URL_ABOUT_OLAUNCHER)
-            }
-
-            R.id.share -> requireActivity().shareApp()
-            R.id.rate -> {
-                prefs.rateClicked = true
-                requireActivity().rateApp()
-            }
-
-            R.id.twitter -> requireContext().openUrl(Constants.URL_TWITTER_TANUJ)
-            R.id.github -> requireContext().openUrl(Constants.URL_OLAUNCHER_GITHUB)
-            R.id.privacy -> requireContext().openUrl(Constants.URL_OLAUNCHER_PRIVACY)
-            R.id.footer -> {
-                requireContext().openUrl(
-                    if (showPentastic) Constants.URL_PENTASTIC else Constants.URL_NTS
-                )
-            }
         }
     }
 
@@ -260,8 +232,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.olauncherHiddenApps.setOnClickListener(this)
         binding.appInfo.setOnClickListener(this)
         binding.setLauncher.setOnClickListener(this)
-        binding.aboutOlauncher.setOnClickListener(this)
-        binding.moreFeatures.setOnClickListener(this)
         binding.autoShowKeyboard.setOnClickListener(this)
         binding.toggleLock.setOnClickListener(this)
         // Home button for recents feature disabled
@@ -293,13 +263,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
 
-        binding.share.setOnClickListener(this)
-        binding.rate.setOnClickListener(this)
-        binding.twitter.setOnClickListener(this)
-        binding.github.setOnClickListener(this)
-        binding.privacy.setOnClickListener(this)
-        binding.footer.setOnClickListener(this)
-
         binding.dailyWallpaper.setOnLongClickListener(this)
         binding.alignment.setOnLongClickListener(this)
         binding.appThemeText.setOnLongClickListener(this)
@@ -309,14 +272,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun initObservers() {
-        if (prefs.firstSettingsOpen) {
-            viewModel.showDialog.postValue(Constants.Dialog.ABOUT)
-            prefs.firstSettingsOpen = false
-        }
+        if (prefs.firstSettingsOpen) prefs.firstSettingsOpen = false
         viewModel.isOlauncherDefault.observe(viewLifecycleOwner) {
             if (it) {
                 binding.setLauncher.text = getString(R.string.change_default_launcher)
-                prefs.toShowHintCounter += 1
             }
         }
         viewModel.homeAppAlignment.observe(viewLifecycleOwner) {
@@ -425,11 +384,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 message = R.string.accessibility_disclosure,
                 neutral = R.string.not_now,
                 onAction = { openAccessibilityService() },
-            ) { container ->
-                DialogNotWorkingBinding.inflate(layoutInflater, container, false).root.apply {
-                    setOnClickListener { requireContext().openUrl(Constants.URL_DOUBLE_TAP) }
-                }
-            }
+            )
         )
     }
 
@@ -915,8 +870,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         var atHomeInput: TextView? = null
         var outsideHome = existing.outsideHome
         var atHome = existing.atHome
-        var drivingBluetooth = existing.drivingBluetooth
         var drivingAndroidAuto = existing.drivingAndroidAuto
+        val selectedBluetoothDevices = existing.bluetoothDeviceAddresses.toMutableSet().apply {
+            if (existing.drivingBluetooth) prefs.carBluetoothAddress.takeIf(String::isNotBlank)?.let(::add)
+        }
+        val preserveLegacyCarRule = existing.drivingBluetooth && prefs.carBluetoothAddress.isBlank()
         val selectedDays = existing.daysOfWeek.toMutableSet()
         val editor = requireContext().createDialog(
             title = R.string.configure_rule,
@@ -933,7 +891,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                         .split(',').map(String::trim).filter(String::isNotEmpty).toSet(),
                     outsideHome = outsideHome,
                     atHome = atHome,
-                    drivingBluetooth = drivingBluetooth,
+                    drivingBluetooth = preserveLegacyCarRule,
+                    bluetoothDeviceAddresses = selectedBluetoothDevices.toSet(),
                     drivingAndroidAuto = drivingAndroidAuto,
                     cooldownMinutes = cooldownInput?.text?.toString()?.toIntOrNull()?.coerceIn(0, 240) ?: 0,
                     daysOfWeek = selectedDays.toSet(),
@@ -1039,11 +998,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 addView(TextView(context).apply {
                     setTextAppearance(R.style.TextSmall)
                     fun update() {
-                        text = "${getString(R.string.driving_bluetooth_rule)}: ${getString(if (drivingBluetooth) R.string.on else R.string.off)}"
+                        val devicesByAddress = DeviceContextSignals.pairedBluetoothDevices(context)
+                            .associate { it.address to it.name }
+                        val names = selectedBluetoothDevices.map { devicesByAddress[it] ?: it }.sorted()
+                        text = "${getString(R.string.bluetooth_devices_rule)}: ${names.ifEmpty { listOf(getString(R.string.none)) }.joinToString(", ")}"
                     }
                     update()
                     setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
-                    setOnClickListener { drivingBluetooth = !drivingBluetooth; update() }
+                    setOnClickListener {
+                        selectRuleBluetoothDevices(selectedBluetoothDevices, ::update)
+                    }
                 })
                 addView(TextView(context).apply {
                     setTextAppearance(R.style.TextSmall)
@@ -1119,15 +1083,56 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
         ) {
+            afterBluetoothPermission = ::showCarBluetoothPicker
             bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
             return
         }
         showCarBluetoothPicker()
     }
 
+    private fun selectRuleBluetoothDevices(selected: MutableSet<String>, onChanged: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            afterBluetoothPermission = { showRuleBluetoothPicker(selected, onChanged) }
+            bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            return
+        }
+        showRuleBluetoothPicker(selected, onChanged)
+    }
+
+    private fun showRuleBluetoothPicker(selected: MutableSet<String>, onChanged: () -> Unit) {
+        val devices = DeviceContextSignals.pairedBluetoothDevices(requireContext())
+        if (devices.isEmpty()) {
+            requireContext().showToast(R.string.select_bluetooth_devices)
+            return
+        }
+        requireContext().createDialog(R.string.bluetooth_devices_rule, R.string.close) { _ ->
+            LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+                devices.forEach { device ->
+                    addView(TextView(context).apply {
+                        setTextAppearance(R.style.TextSmall)
+                        fun updateSelectedState() {
+                            val isSelected = device.address in selected
+                            text = "${if (isSelected) "✓ " else ""}${device.name}"
+                            setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                        }
+                        updateSelectedState()
+                        setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
+                        setOnClickListener {
+                            if (!selected.add(device.address)) selected.remove(device.address)
+                            updateSelectedState()
+                            onChanged()
+                        }
+                    })
+                }
+            }
+        }.showRespectingStatusBar()
+    }
+
     private fun showCarBluetoothPicker() {
-        val adapter = (requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        val devices = runCatching { adapter?.bondedDevices.orEmpty().sortedBy { it.name.orEmpty() } }.getOrDefault(emptyList())
+        val devices = DeviceContextSignals.pairedBluetoothDevices(requireContext())
         if (devices.isEmpty()) {
             requireContext().showToast(R.string.select_car_bluetooth)
             return
@@ -1138,11 +1143,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 devices.forEach { device ->
                     addView(TextView(context).apply {
                         setTextAppearance(R.style.TextSmall)
-                        text = device.name ?: device.address
+                        text = device.name
                         setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
                         setOnClickListener {
                             prefs.carBluetoothAddress = device.address
-                            prefs.carBluetoothName = device.name ?: device.address
+                            prefs.carBluetoothName = device.name
                             binding.carBluetooth.text = prefs.carBluetoothName
                             dialog?.dismiss()
                         }
@@ -1300,21 +1305,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.action_settingsFragment_to_appListFragment,
             bundleOf(Constants.Key.FLAG to flag)
         )
-    }
-
-    private fun populateActionHints() {
-        if (prefs.aboutClicked.not())
-            binding.aboutOlauncher.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_info, 0)
-        if (viewModel.isOlauncherDefault.value != true) return
-        if (prefs.rateClicked.not() && prefs.toShowHintCounter > Constants.HINT_RATE_US && prefs.toShowHintCounter < Constants.HINT_RATE_US + 100)
-            binding.rate.setCompoundDrawablesWithIntrinsicBounds(0, android.R.drawable.arrow_down_float, 0, 0)
-    }
-
-    private fun populateProMessage() {
-        if (prefs.proMessageShown.not() && prefs.userState == Constants.UserState.SHARE) {
-            prefs.proMessageShown = true
-            viewModel.showDialog.postValue(Constants.Dialog.PRO_MESSAGE)
-        }
     }
 
     override fun onDestroyView() {
