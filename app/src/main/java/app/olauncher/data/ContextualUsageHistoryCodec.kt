@@ -2,6 +2,7 @@ package app.olauncher.data
 
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.roundToInt
 
 data class DecodedContextualUsage(
     val entries: List<ContextualUsageEntry>,
@@ -28,7 +29,7 @@ object ContextualUsageHistoryCodec {
                     .put("app", entry.appIdentity)
                     .put("bucket", entry.timeBucket)
                     .put("day", entry.epochDay)
-                    .put("count", entry.count))
+                    .put("count", entry.launchMass.roundToInt()))
             }
         return JSONObject().put("version", VERSION).put("entries", encodedEntries).toString()
     }
@@ -59,7 +60,7 @@ object ContextualUsageHistoryCodec {
                 val identity = key.substring(0, separator)
                 val bucket = key.substring(separator + 1).toIntOrNull() ?: return@forEach
                 val count = root.strictInt(key) ?: return@forEach
-                val entry = ContextualUsageEntry(identity, bucket, migrationEpochDay, count)
+                val entry = ContextualUsageEntry(identity, bucket, migrationEpochDay, count.toDouble())
                 if (isValid(entry)) add(entry)
             }
         }
@@ -72,7 +73,7 @@ object ContextualUsageHistoryCodec {
             appIdentity = opt("app") as? String ?: return null,
             timeBucket = strictInt("bucket") ?: return null,
             epochDay = strictLong("day") ?: return null,
-            count = strictInt("count") ?: return null,
+            launchMass = strictInt("count")?.toDouble() ?: return null,
         )
     }
 
@@ -83,7 +84,8 @@ object ContextualUsageHistoryCodec {
         (opt(name) as? Number)?.toString()?.toLongOrNull()
 
     private fun isValid(entry: ContextualUsageEntry): Boolean =
-        entry.appIdentity.isNotBlank() && entry.timeBucket in 0..5 && entry.count > 0
+        entry.appIdentity.isNotBlank() && entry.timeBucket in 0..47 &&
+            entry.launchMass.isFinite() && entry.launchMass > 0.0
 
     private fun List<ContextualUsageEntry>.sortedEntries(): List<ContextualUsageEntry> =
         sortedWith(compareBy(ContextualUsageEntry::appIdentity)

@@ -10,17 +10,17 @@ class ContextualUsageHistoryCodecTest {
     fun `version two round trip preserves entries in stable order`() {
         val encoded = ContextualUsageHistoryCodec.encode(
             listOf(
-                ContextualUsageEntry("teams", 4, 20, 1),
-                ContextualUsageEntry("spotify", 3, 21, 2),
-                ContextualUsageEntry("spotify", 2, 22, 3),
+                ContextualUsageEntry("teams", 4, 20, 1.0),
+                ContextualUsageEntry("spotify", 3, 21, 2.0),
+                ContextualUsageEntry("spotify", 2, 22, 3.0),
             ),
         )
 
         assertEquals(
             listOf(
-                ContextualUsageEntry("spotify", 2, 22, 3),
-                ContextualUsageEntry("spotify", 3, 21, 2),
-                ContextualUsageEntry("teams", 4, 20, 1),
+                ContextualUsageEntry("spotify", 2, 22, 3.0),
+                ContextualUsageEntry("spotify", 3, 21, 2.0),
+                ContextualUsageEntry("teams", 4, 20, 1.0),
             ),
             ContextualUsageHistoryCodec.decode(encoded, 99).entries,
         )
@@ -38,7 +38,7 @@ class ContextualUsageHistoryCodecTest {
             200,
         )
 
-        assertEquals(listOf(ContextualUsageEntry("spotify", 3, 100, 2)), decoded.entries)
+        assertEquals(listOf(ContextualUsageEntry("spotify", 3, 100, 2.0)), decoded.entries)
         assertTrue(decoded.requiresRewrite)
     }
 
@@ -53,7 +53,7 @@ class ContextualUsageHistoryCodecTest {
             200,
         )
 
-        assertEquals(listOf(ContextualUsageEntry("valid", 3, 100, 2)), decoded.entries)
+        assertEquals(listOf(ContextualUsageEntry("valid", 3, 100, 2.0)), decoded.entries)
         assertTrue(decoded.requiresRewrite)
     }
 
@@ -74,8 +74,8 @@ class ContextualUsageHistoryCodecTest {
 
         assertEquals(
             listOf(
-                ContextualUsageEntry("package#profile|user", 3, 123, 4),
-                ContextualUsageEntry("teams|user", 5, 123, 2),
+                ContextualUsageEntry("package#profile|user", 3, 123, 4.0),
+                ContextualUsageEntry("teams|user", 5, 123, 2.0),
             ),
             decoded.entries,
         )
@@ -89,7 +89,7 @@ class ContextualUsageHistoryCodecTest {
             123,
         )
 
-        assertEquals(listOf(ContextualUsageEntry("valid|user", 2, 123, 3)), decoded.entries)
+        assertEquals(listOf(ContextualUsageEntry("valid|user", 2, 123, 3.0)), decoded.entries)
         assertTrue(decoded.requiresRewrite)
     }
 
@@ -100,7 +100,7 @@ class ContextualUsageHistoryCodecTest {
             123,
         )
 
-        assertEquals(listOf(ContextualUsageEntry("valid|user", 2, 123, 3)), decoded.entries)
+        assertEquals(listOf(ContextualUsageEntry("valid|user", 2, 123, 3.0)), decoded.entries)
         assertTrue(decoded.requiresRewrite)
     }
 
@@ -112,7 +112,7 @@ class ContextualUsageHistoryCodecTest {
             200,
         )
 
-        assertEquals(listOf(ContextualUsageEntry("spotify|user", 3, 123, 7)), decodedAgain.entries)
+        assertEquals(listOf(ContextualUsageEntry("spotify|user", 3, 123, 7.0)), decodedAgain.entries)
         assertFalse(decodedAgain.requiresRewrite)
     }
 }

@@ -39,8 +39,8 @@ class ContextualUsageRepositoryTest {
     fun `read prunes expired entries and retains the thirty day boundary`() {
         val serialized = ContextualUsageHistoryCodec.encode(
             listOf(
-                ContextualUsageEntry("spotify|user", 3, currentDay - 31, 8),
-                ContextualUsageEntry("spotify|user", 3, currentDay - 30, 8),
+                ContextualUsageEntry("spotify|user", 3, currentDay - 31, 8.0),
+                ContextualUsageEntry("spotify|user", 3, currentDay - 30, 8.0),
             ),
         )
 
@@ -51,7 +51,7 @@ class ContextualUsageRepositoryTest {
         assertTrue(update.changed)
         assertEquals(4, update.score)
         assertEquals(
-            listOf(ContextualUsageEntry("spotify|user", 3, currentDay - 30, 8)),
+            listOf(ContextualUsageEntry("spotify|user", 3, currentDay - 30, 8.0)),
             ContextualUsageHistoryCodec.decode(update.serialized, currentDay).entries,
         )
     }
@@ -59,7 +59,7 @@ class ContextualUsageRepositoryTest {
     @Test
     fun `record increments only the current app bucket and day`() {
         val serialized = ContextualUsageHistoryCodec.encode(
-            listOf(ContextualUsageEntry("teams|user", 3, currentDay, 5)),
+            listOf(ContextualUsageEntry("teams|user", 3, currentDay, 5.0)),
         )
 
         val update = ContextualUsageRepository.updateSerializedHistory(
@@ -70,8 +70,8 @@ class ContextualUsageRepositoryTest {
         assertEquals(10, update.score)
         assertEquals(
             listOf(
-                ContextualUsageEntry("spotify|user", 3, currentDay, 1),
-                ContextualUsageEntry("teams|user", 3, currentDay, 5),
+                ContextualUsageEntry("spotify|user", 24, currentDay, 1.0),
+                ContextualUsageEntry("teams|user", 3, currentDay, 5.0),
             ),
             ContextualUsageHistoryCodec.decode(update.serialized, currentDay).entries,
         )

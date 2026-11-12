@@ -21,14 +21,14 @@ object ContextualUsageRepository {
         val decoded = ContextualUsageHistoryCodec.decode(serialized, currentDay)
         val pruned = ContextualUsageHistory.prune(decoded.entries, currentDay)
         val updated = if (recordLaunch) {
-            ContextualUsageHistory.record(pruned, appIdentity, hour, currentDay)
+            ContextualUsageHistory.record(pruned, appIdentity, hour, 0, currentDay)
         } else {
             pruned
         }
         val changed = decoded.requiresRewrite || updated != decoded.entries
         return ContextualUsageUpdate(
             serialized = if (changed) ContextualUsageHistoryCodec.encode(updated) else serialized,
-            score = ContextualUsageHistory.score(updated, appIdentity, hour, currentDay),
+            score = ContextualUsageHistory.score(updated, appIdentity, hour, 0, currentDay),
             changed = changed,
         )
     }
