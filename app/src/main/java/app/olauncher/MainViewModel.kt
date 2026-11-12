@@ -455,17 +455,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         try {
             launcher.startMainActivity(component, userHandle, null, null)
+            val launchTime = Calendar.getInstance()
             prefs.recordContextualLaunch(
                 "$packageName|$userHandle",
-                Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                launchTime.get(Calendar.HOUR_OF_DAY),
+                launchTime.get(Calendar.MINUTE),
             )
             return true
         } catch (e: SecurityException) {
             try {
                 launcher.startMainActivity(component, android.os.Process.myUserHandle(), null, null)
+                val launchTime = Calendar.getInstance()
                 prefs.recordContextualLaunch(
                     "$packageName|${android.os.Process.myUserHandle()}",
-                    Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                    launchTime.get(Calendar.HOUR_OF_DAY),
+                    launchTime.get(Calendar.MINUTE),
                 )
                 return true
             } catch (e: Exception) {

@@ -9,12 +9,20 @@ data class DecodedContextualUsage(
 )
 
 object ContextualUsageHistoryCodec {
-    private const val VERSION = 2
+    private const val VERSION = 3
+    private const val VERSION_TWO = 2
+    private const val HALF_HOUR_BUCKETS_PER_OLD_BUCKET = 8
 
     fun decode(serialized: String, migrationEpochDay: Long): DecodedContextualUsage {
         val root = runCatching { JSONObject(serialized) }.getOrNull()
             ?: return DecodedContextualUsage(emptyList(), true)
-        return if (root.has("version")) decodeVersionTwo(root) else migrateLegacy(root, migrationEpochDay)
+        return when (root.strictInt("version")) {
+            VERSION -> decodeVersionThree(root)
+            VERSION_TWO -> migrateVersionTwo(root)
+            null -> if (root.has("version")) DecodedContextualUsage(emptyList(), true)
+                else migrateLegacy(root, migrationEpochDay)
+            else -> DecodedContextualUsage(emptyList(), true)
+        }
     }
 
     fun encode(entries: List<ContextualUsageEntry>): String {
@@ -28,19 +36,18 @@ object ContextualUsageHistoryCodec {
                     .put("app", entry.appIdentity)
                     .put("bucket", entry.timeBucket)
                     .put("day", entry.epochDay)
-                    .put("count", entry.count))
+                    .put("mass", entry.launchMass))
             }
         return JSONObject().put("version", VERSION).put("entries", encodedEntries).toString()
     }
 
-    private fun decodeVersionTwo(root: JSONObject): DecodedContextualUsage {
-        if (root.optInt("version", -1) != VERSION) return DecodedContextualUsage(emptyList(), true)
+    private fun decodeVersionThree(root: JSONObject): DecodedContextualUsage {
         val array = root.optJSONArray("entries") ?: return DecodedContextualUsage(emptyList(), true)
         var requiresRewrite = false
         val entries = buildList {
             for (index in 0 until array.length()) {
                 val item = array.optJSONObject(index)
-                val entry = item?.toEntry()
+                val entry = item?.toVersionThreeEntry()
                 if (entry == null || !isValid(entry)) {
                     requiresRewrite = true
                 } else {
@@ -51,6 +58,21 @@ object ContextualUsageHistoryCodec {
         return DecodedContextualUsage(entries.sortedEntries(), requiresRewrite)
     }
 
+    private fun migrateVersionTwo(root: JSONObject): DecodedContextualUsage {
+        val array = root.optJSONArray("entries") ?: return DecodedContextualUsage(emptyList(), true)
+        val entries = buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val identity = item.opt("app") as? String ?: continue
+                val bucket = item.strictInt("bucket") ?: continue
+                val day = item.strictLong("day") ?: continue
+                val count = item.strictInt("count") ?: continue
+                addAll(migrateFourHourEntry(identity, bucket, day, count))
+            }
+        }
+        return DecodedContextualUsage(entries.sortedEntries(), true)
+    }
+
     private fun migrateLegacy(root: JSONObject, migrationEpochDay: Long): DecodedContextualUsage {
         val entries = buildList {
             root.keys().forEach { key ->
@@ -59,20 +81,33 @@ object ContextualUsageHistoryCodec {
                 val identity = key.substring(0, separator)
                 val bucket = key.substring(separator + 1).toIntOrNull() ?: return@forEach
                 val count = root.strictInt(key) ?: return@forEach
-                val entry = ContextualUsageEntry(identity, bucket, migrationEpochDay, count)
-                if (isValid(entry)) add(entry)
+                addAll(migrateFourHourEntry(identity, bucket, migrationEpochDay, count))
             }
         }
         return DecodedContextualUsage(entries.sortedEntries(), true)
     }
 
-    private fun JSONObject.toEntry(): ContextualUsageEntry? {
-        if (!has("app") || !has("bucket") || !has("day") || !has("count")) return null
+    private fun migrateFourHourEntry(
+        identity: String,
+        oldBucket: Int,
+        epochDay: Long,
+        count: Int,
+    ): List<ContextualUsageEntry> {
+        if (identity.isBlank() || oldBucket !in 0..5 || count <= 0) return emptyList()
+        val mass = count.toDouble() / HALF_HOUR_BUCKETS_PER_OLD_BUCKET
+        val firstBucket = oldBucket * HALF_HOUR_BUCKETS_PER_OLD_BUCKET
+        return (firstBucket until firstBucket + HALF_HOUR_BUCKETS_PER_OLD_BUCKET).map { bucket ->
+            ContextualUsageEntry(identity, bucket, epochDay, mass)
+        }
+    }
+
+    private fun JSONObject.toVersionThreeEntry(): ContextualUsageEntry? {
+        if (!has("app") || !has("bucket") || !has("day") || !has("mass")) return null
         return ContextualUsageEntry(
             appIdentity = opt("app") as? String ?: return null,
             timeBucket = strictInt("bucket") ?: return null,
             epochDay = strictLong("day") ?: return null,
-            count = strictInt("count") ?: return null,
+            launchMass = strictDouble("mass") ?: return null,
         )
     }
 
@@ -82,8 +117,12 @@ object ContextualUsageHistoryCodec {
     private fun JSONObject.strictLong(name: String): Long? =
         (opt(name) as? Number)?.toString()?.toLongOrNull()
 
+    private fun JSONObject.strictDouble(name: String): Double? =
+        (opt(name) as? Number)?.toString()?.toDoubleOrNull()?.takeIf(Double::isFinite)
+
     private fun isValid(entry: ContextualUsageEntry): Boolean =
-        entry.appIdentity.isNotBlank() && entry.timeBucket in 0..5 && entry.count > 0
+        entry.appIdentity.isNotBlank() && entry.timeBucket in 0..47 &&
+            entry.launchMass.isFinite() && entry.launchMass > 0.0
 
     private fun List<ContextualUsageEntry>.sortedEntries(): List<ContextualUsageEntry> =
         sortedWith(compareBy(ContextualUsageEntry::appIdentity)

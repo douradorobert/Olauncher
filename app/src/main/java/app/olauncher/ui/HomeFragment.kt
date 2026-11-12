@@ -520,7 +520,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
 
         val launcher = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val currentTime = Calendar.getInstance()
+        val hour = currentTime.get(Calendar.HOUR_OF_DAY)
+        val minute = currentTime.get(Calendar.MINUTE)
         val pinnedPackages = ContextualSuggestions.visiblePinnedPackages(
             packageNames = (1..Constants.MAX_HOME_ITEMS).map(prefs::getAppPackage),
             visibleAppCount = prefs.homeAppsNum,
@@ -538,7 +540,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 packageName = packageName,
                 activityClassName = activity.componentName.className,
                 user = userString,
-                usageScore = prefs.contextualUsageScore(identity, hour),
+                usageScore = prefs.contextualUsageScore(identity, hour, minute),
             )
         }
         val now = System.currentTimeMillis()
@@ -571,8 +573,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             event = contextEvent,
             outsideHome = outsideHome,
             atHome = atHome,
-            currentMinutes = hour * 60 + Calendar.getInstance().get(Calendar.MINUTE),
-            currentDayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK),
+            currentMinutes = hour * 60 + minute,
+            currentDayOfWeek = currentTime.get(Calendar.DAY_OF_WEEK),
             rules = prefs.contextualRules(),
             limit = suggestionLimit,
             signals = ContextualSignals(
