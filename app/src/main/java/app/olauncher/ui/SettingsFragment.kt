@@ -46,7 +46,6 @@ import app.olauncher.data.ContextualRule
 import app.olauncher.data.DeviceContextSignals
 import app.olauncher.data.Prefs
 import app.olauncher.data.SettingsBackup
-import app.olauncher.databinding.DialogNotWorkingBinding
 import app.olauncher.databinding.DialogTextSizeBinding
 import app.olauncher.databinding.FragmentSettingsBinding
 import app.olauncher.helper.appUsagePermissionGranted
@@ -273,14 +272,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun initObservers() {
-        if (prefs.firstSettingsOpen) {
-            viewModel.showDialog.postValue(Constants.Dialog.ABOUT)
-            prefs.firstSettingsOpen = false
-        }
         viewModel.isOlauncherDefault.observe(viewLifecycleOwner) {
             if (it) {
                 binding.setLauncher.text = getString(R.string.change_default_launcher)
-                prefs.toShowHintCounter += 1
             }
         }
         viewModel.homeAppAlignment.observe(viewLifecycleOwner) {
@@ -389,11 +383,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 message = R.string.accessibility_disclosure,
                 neutral = R.string.not_now,
                 onAction = { openAccessibilityService() },
-            ) { container ->
-                DialogNotWorkingBinding.inflate(layoutInflater, container, false).root.apply {
-                    setOnClickListener { requireContext().openUrl(Constants.URL_DOUBLE_TAP) }
-                }
-            }
+            )
         )
     }
 
