@@ -13,10 +13,7 @@
     <string name="black">Preto</string>
     <string name="white">Branco</string>
     <string name="change_default_launcher">Alterar launcher padrão</string>
-    <string name="privacy">Privacidade</string>
-    <string name="share">Compartilhar</string>
     <string name="share_now">Compartilhar agora</string>
-    <string name="rate">Avaliar</string>
     <string name="rate_now">Avaliar agora</string>
     <string name="follow">Seguir</string>
     <string name="email">E-mail</string>
@@ -132,7 +129,6 @@
     <string name="adapter_show">Mostrar</string>
     <string name="adapter_hide">Ocultar</string>
     <string name="are_you_using_your_phone_or_is_your_phone_using_you">Você está usando seu telefone, ou seu telefone está usando você?</string>
-    <string name="about_olauncher">Sobre e perguntas frequentes</string>
     <string name="learn_more">Saber mais</string>
     <string name="screen_time">Tempo de tela</string>
     <string name="mindful_apps">Apps com espera ao abrir</string>
@@ -147,7 +143,6 @@
     <string name="alignment_changed">Alinhamento alterado ✅</string>
     <string name="home_screen">Tela inicial</string>
     <string name="hey">Oi</string>
-    <string name="more_features">Mais recursos…</string>
     <string name="new_year_wish">A um ano melhor do que qualquer um anterior. Feliz ano novo!</string>
     <string name="new_year_wish_1">Não importa como foi janeiro. Você ainda tem o resto do ano para se sair melhor do que nunca.</string>
     <string name="cheers">Saúde!</string>
