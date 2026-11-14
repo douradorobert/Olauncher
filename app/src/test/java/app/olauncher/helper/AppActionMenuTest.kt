@@ -5,6 +5,13 @@ import org.junit.Test
 
 class AppActionMenuTest {
     @Test
+    fun `pin target is first empty visible home position`() {
+        assertEquals(2, firstFreeHomePosition(listOf("one", "", "three"), 3))
+        assertEquals(null, firstFreeHomePosition(listOf("one", "two"), 2))
+        assertEquals(1, firstFreeHomePosition(emptyList(), 0))
+    }
+
+    @Test
     fun `drawer app offers pin and management actions`() {
         assertEquals(
             listOf(

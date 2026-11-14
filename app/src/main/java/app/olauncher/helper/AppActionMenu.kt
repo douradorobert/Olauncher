@@ -28,3 +28,10 @@ fun appMenuActions(source: AppMenuSource, canUninstall: Boolean = false): List<A
 }
 
 data class AppDialogAction(val label: CharSequence, val onClick: () -> Unit)
+
+fun firstFreeHomePosition(packageNames: List<String>, visibleCount: Int): Int? {
+    val effectiveCount = visibleCount.coerceAtLeast(1)
+    return (1..effectiveCount).firstOrNull { position ->
+        packageNames.getOrNull(position - 1).isNullOrBlank()
+    }
+}
