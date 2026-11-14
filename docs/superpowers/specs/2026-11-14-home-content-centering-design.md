@@ -6,12 +6,13 @@ Prevent fixed and suggested apps from overlapping the clock, calendar event, and
 
 ## Approach
 
-Place `dateTimeLayout` and `homeAppsLayout` in one full-height vertical container in portrait and landscape. The widget block keeps wrap-content height; the app block receives the remaining height with weight `1` and centers its children inside that remainder. Screen time and bottom overlays remain siblings in the root `FrameLayout`.
+Place `dateTimeLayout` and a weighted app viewport in one full-height vertical container in portrait and landscape. The widget block keeps wrap-content height; the viewport receives the remaining height. A `fillViewport` scroll container expands `homeAppsLayout` to center short lists and permits scrolling when many apps do not fit. Screen time remains a later sibling in the root `FrameLayout`, preserving its drawing and touch priority; bottom overlays remain later siblings as well.
 
 ## Constraints
 
 - Preserve horizontal alignment and optional bottom alignment.
 - Preserve widget visibility behavior and contextual suggestions.
+- Keep every configured app reachable on short screens and in landscape.
 - Do not add runtime measurement code or dependencies.
 - Apply the same structure to portrait and landscape resources.
 

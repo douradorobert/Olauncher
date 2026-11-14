@@ -4,7 +4,7 @@
 
 **Goal:** Center home apps inside the vertical space remaining below visible date, calendar, and weather widgets.
 
-**Architecture:** Use Android's vertical `LinearLayout` weight distribution instead of runtime measurement. In both layout variants, a full-height content column owns the widget block and a weighted app block.
+**Architecture:** Use Android's vertical `LinearLayout` weight distribution instead of runtime measurement. In both layout variants, a full-height content column owns the widget block and a weighted, fill-viewport scroll area that centers short lists and keeps long lists reachable.
 
 **Tech Stack:** Android XML layouts, Kotlin/JUnit structural regression test, Gradle Android build.
 
@@ -36,6 +36,6 @@
 
 - [ ] Write a failing structural test asserting a shared vertical parent and a weighted app area in both resources.
 - [ ] Run the focused test and confirm it fails against the overlay layout.
-- [ ] Wrap widgets and apps in a full-height vertical content column; make the app area `0dp` high with weight `1` and retain existing horizontal/bottom padding.
+- [ ] Wrap widgets and a scrollable app viewport in a full-height vertical content column; make the viewport `0dp` high with weight `1`, enable `fillViewport`, retain existing horizontal/bottom padding, and keep screen time above the column in z-order.
 - [ ] Run the focused test, full unit suite, resource compilation, and debug assembly.
 - [ ] Commit the verified change.
