@@ -62,6 +62,7 @@ import app.olauncher.helper.expandNotificationDrawer
 import app.olauncher.helper.getChangedAppTheme
 import app.olauncher.helper.getAppShortcuts
 import app.olauncher.helper.firstFreeHomePosition
+import app.olauncher.helper.refreshAfterHomeMutation
 import app.olauncher.helper.getColorFromAttr
 import app.olauncher.helper.getUserHandleFromString
 import app.olauncher.helper.isPackageInstalled
@@ -287,7 +288,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                     AppMenuAction.REPLACE_HOME -> showAppList(location, true, true)
                     AppMenuAction.REMOVE_FROM_HOME -> {
                         prefs.clearHomeApp(location)
-                        populateHomeScreen(false)
+                        refreshHomeAndSuggestions()
                     }
                     AppMenuAction.INFO -> openAppInfo(requireContext(), appModel.user, appModel.appPackage)
                     else -> Unit
@@ -334,7 +335,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } else binding.firstRunTips.visibility = View.GONE
 
         viewModel.refreshHome.observe(viewLifecycleOwner) {
-            populateHomeScreen(it)
+            refreshHomeAndSuggestions(it)
         }
         viewModel.isOlauncherDefault.observe(viewLifecycleOwner, Observer {
             if (it != true) {
@@ -547,6 +548,13 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             prefs.appName8 = ""
             prefs.appPackage8 = ""
         }
+    }
+
+    private fun refreshHomeAndSuggestions(appCountUpdated: Boolean = false) {
+        refreshAfterHomeMutation(
+            refreshHome = { populateHomeScreen(appCountUpdated) },
+            refreshSuggestions = ::refreshContextualSuggestions,
+        )
     }
 
     private fun homeAppVerticalPadding(): Int =
@@ -1330,7 +1338,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         )
         if (freePosition != null) {
             viewModel.selectedApp(appModel, freePosition)
-            populateHomeScreen(false)
+            refreshHomeAndSuggestions()
             return
         }
         requireContext().showAppActionDialog(
@@ -1340,7 +1348,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             actions = positions.map { position ->
                 AppDialogAction("$position. ${prefs.getAppName(position)}") {
                     viewModel.selectedApp(appModel, position)
-                    populateHomeScreen(false)
+                    refreshHomeAndSuggestions()
                 }
             },
         )

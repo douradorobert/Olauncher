@@ -35,3 +35,8 @@ fun firstFreeHomePosition(packageNames: List<String>, visibleCount: Int): Int? {
         packageNames.getOrNull(position - 1).isNullOrBlank()
     }
 }
+
+fun refreshAfterHomeMutation(refreshHome: () -> Unit, refreshSuggestions: () -> Unit) {
+    refreshHome()
+    refreshSuggestions()
+}
