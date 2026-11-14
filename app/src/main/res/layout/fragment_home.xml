@@ -23,6 +23,29 @@
         android:layout_height="1dp"
         android:contentDescription="@string/recents_layout_description" /> -->
 
+    <!-- Screen time overlay -->
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tvScreenTime"
+        style="@style/TextSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginTop="72dp"
+        android:gravity="center"
+        android:padding="10dp"
+        android:textSize="@dimen/date_size"
+        android:visibility="gone"
+        tools:text="2h 11m"
+        tools:visibility="visible" />
+
+    <!-- Widgets take their measured height; apps center in the remaining space. -->
+    <LinearLayout
+        android:id="@+id/homeContentColumn"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
     <!-- Clock and calendar-->
     <LinearLayout
         android:id="@+id/dateTimeLayout"
@@ -82,31 +105,15 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Screen time-->
-    <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/tvScreenTime"
-        style="@style/TextSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginTop="72dp"
-        android:gravity="center"
-        android:padding="10dp"
-        android:textSize="@dimen/date_size"
-        android:visibility="gone"
-        tools:text="2h 11m"
-        tools:visibility="visible" />
-
     <!-- Home apps-->
     <LinearLayout
         android:id="@+id/homeAppsLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
-        android:paddingTop="112dp"
         android:paddingBottom="48dp">
 
         <TextView
@@ -220,6 +227,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:visibility="gone" />
+
+    </LinearLayout>
 
     </LinearLayout>
 
