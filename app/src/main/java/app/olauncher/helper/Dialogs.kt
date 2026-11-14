@@ -8,12 +8,15 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.TextView
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
+import app.olauncher.R
 import app.olauncher.data.Prefs
+import app.olauncher.databinding.DialogAppActionsBinding
 import app.olauncher.databinding.DialogBaseBinding
 
 /**
@@ -115,6 +118,48 @@ fun Context.showMessageDialog(
     onAction: () -> Unit,
 ): OlDialog {
     val dialog = createDialog(title, action, message = message, onAction = onAction)
+    dialog.showRespectingStatusBar()
+    return dialog
+}
+
+fun Context.showAppActionDialog(
+    title: CharSequence,
+    shortcuts: List<AppShortcutItem>,
+    onShortcut: (AppShortcutItem) -> Unit,
+    actions: List<AppDialogAction>,
+): OlDialog {
+    val dialog = OlDialog(this)
+    val binding = DialogAppActionsBinding.inflate(LayoutInflater.from(dialog.context))
+    binding.tvTitle.text = title
+    binding.ivClose.setOnClickListener { dialog.dismiss() }
+    val styledAttributes = dialog.context.obtainStyledAttributes(
+        intArrayOf(android.R.attr.selectableItemBackground)
+    )
+    val selectableBackground = styledAttributes.getResourceId(0, 0)
+    styledAttributes.recycle()
+
+    fun row(label: CharSequence, onClick: () -> Unit) = TextView(dialog.context).apply {
+        setTextAppearance(R.style.TextLarge)
+        text = label
+        isFocusable = true
+        if (selectableBackground != 0) setBackgroundResource(selectableBackground)
+        setPadding(0, 12.dpToPx(), 8.dpToPx(), 12.dpToPx())
+        setOnClickListener {
+            dialog.dismiss()
+            onClick()
+        }
+    }
+
+    shortcuts.forEach { shortcut ->
+        binding.shortcutContainer.addView(row(shortcut.label) { onShortcut(shortcut) })
+    }
+    binding.shortcutContainer.isVisible = shortcuts.isNotEmpty()
+    binding.sectionDivider.isVisible = shortcuts.isNotEmpty() && actions.isNotEmpty()
+    actions.forEach { action ->
+        binding.actionContainer.addView(row(action.label, action.onClick))
+    }
+
+    dialog.setView(binding.root)
     dialog.showRespectingStatusBar()
     return dialog
 }
