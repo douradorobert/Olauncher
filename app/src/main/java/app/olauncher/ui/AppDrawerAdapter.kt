@@ -31,7 +31,6 @@ class AppDrawerAdapter(
     private val appLabelGravity: Int,
     private val appSpacingScale: Float,
     private val appClickListener: (AppModel) -> Unit,
-    private val appLongClickListener: (AppModel) -> Unit,
     private val appInfoListener: (AppModel) -> Unit,
     private val appDeleteListener: (AppModel) -> Unit,
     private val appHideListener: (AppModel, Int) -> Unit,
@@ -121,7 +120,6 @@ class AppDrawerAdapter(
                     myUserHandle,
                     appModel,
                     appClickListener,
-                    appLongClickListener,
                     appDeleteListener,
                     appInfoListener,
                     appHideListener,
@@ -242,7 +240,6 @@ class AppDrawerAdapter(
             myUserHandle: UserHandle,
             appModel: AppModel,
             clickListener: (AppModel) -> Unit,
-            longClickListener: (AppModel) -> Unit,
             appDeleteListener: (AppModel) -> Unit,
             appInfoListener: (AppModel) -> Unit,
             appHideListener: (AppModel, Int) -> Unit,
@@ -268,7 +265,30 @@ class AppDrawerAdapter(
             appTitle.setOnClickListener { clickListener(appModel) }
 
             appTitle.setOnLongClickListener {
-                if (appModel.appPackage.isNotEmpty()) longClickListener(appModel)
+                if (appModel.appPackage.isNotEmpty()) {
+                    appDelete.alpha = when (
+                        appModel is AppModel.PinnedShortcut || !root.context.isSystemApp(appModel.appPackage, appModel.user)
+                    ) {
+                        true -> 1.0f
+                        false -> 0.5f
+                    }
+                    appDelete.text = if (appModel is AppModel.PinnedShortcut)
+                        root.context.getString(R.string.remove)
+                    else
+                        root.context.getString(R.string.delete)
+                    appHide.text = if (flag == Constants.FLAG_HIDDEN_APPS)
+                        root.context.getString(R.string.adapter_show)
+                    else
+                        root.context.getString(R.string.adapter_hide)
+                    appTitle.visibility = View.INVISIBLE
+                    appHide.alpha = when (appModel is AppModel.PinnedShortcut) {
+                        true -> 0.5f
+                        false -> 1.0f
+                    }
+                    appHideLayout.visibility = View.VISIBLE
+                    // Only allow renaming non hidden apps
+                    appRename.isVisible = flag != Constants.FLAG_HIDDEN_APPS
+                }
                 true
             }
 

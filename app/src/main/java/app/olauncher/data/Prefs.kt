@@ -301,18 +301,6 @@ class Prefs(context: Context) {
         prefs.edit { putString(CONTEXTUAL_RULES, ContextualRuleCodec.encode(rules)).apply() }
     }
 
-    fun removeContextualCandidate(identity: String) {
-        val removal = app.olauncher.data.removeContextualCandidate(
-            identity = identity,
-            candidates = contextualApps,
-            rules = contextualRules(),
-        )
-        contextualApps = removal.candidates
-        prefs.edit {
-            putString(CONTEXTUAL_RULES, ContextualRuleCodec.encode(removal.rules)).apply()
-        }
-    }
-
     var homeLocationSet: Boolean
         get() = prefs.getBoolean(HOME_LOCATION_SET, false)
         set(value) = prefs.edit { putBoolean(HOME_LOCATION_SET, value).apply() }
@@ -850,24 +838,6 @@ class Prefs(context: Context) {
             7 -> isShortcut7
             8 -> isShortcut8
             else -> false
-        }
-    }
-
-    fun clearHomeApp(location: Int) {
-        val keys = when (location) {
-            1 -> arrayOf(APP_NAME_1, APP_PACKAGE_1, APP_ACTIVITY_CLASS_NAME_1, APP_USER_1, IS_SHORTCUT_1, SHORTCUT_ID_1)
-            2 -> arrayOf(APP_NAME_2, APP_PACKAGE_2, APP_ACTIVITY_CLASS_NAME_2, APP_USER_2, IS_SHORTCUT_2, SHORTCUT_ID_2)
-            3 -> arrayOf(APP_NAME_3, APP_PACKAGE_3, APP_ACTIVITY_CLASS_NAME_3, APP_USER_3, IS_SHORTCUT_3, SHORTCUT_ID_3)
-            4 -> arrayOf(APP_NAME_4, APP_PACKAGE_4, APP_ACTIVITY_CLASS_NAME_4, APP_USER_4, IS_SHORTCUT_4, SHORTCUT_ID_4)
-            5 -> arrayOf(APP_NAME_5, APP_PACKAGE_5, APP_ACTIVITY_CLASS_NAME_5, APP_USER_5, IS_SHORTCUT_5, SHORTCUT_ID_5)
-            6 -> arrayOf(APP_NAME_6, APP_PACKAGE_6, APP_ACTIVITY_CLASS_NAME_6, APP_USER_6, IS_SHORTCUT_6, SHORTCUT_ID_6)
-            7 -> arrayOf(APP_NAME_7, APP_PACKAGE_7, APP_ACTIVITY_CLASS_NAME_7, APP_USER_7, IS_SHORTCUT_7, SHORTCUT_ID_7)
-            8 -> arrayOf(APP_NAME_8, APP_PACKAGE_8, APP_ACTIVITY_CLASS_NAME_8, APP_USER_8, IS_SHORTCUT_8, SHORTCUT_ID_8)
-            else -> return
-        }
-        prefs.edit {
-            keys.forEach(::remove)
-            apply()
         }
     }
 

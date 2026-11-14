@@ -53,16 +53,9 @@ import app.olauncher.data.weather.WeatherRepository
 import app.olauncher.data.weather.weatherSymbol
 import app.olauncher.databinding.FragmentHomeBinding
 import app.olauncher.helper.appUsagePermissionGranted
-import app.olauncher.helper.AppDialogAction
-import app.olauncher.helper.AppMenuAction
-import app.olauncher.helper.AppMenuSource
-import app.olauncher.helper.appMenuActions
 import app.olauncher.helper.dpToPx
 import app.olauncher.helper.expandNotificationDrawer
 import app.olauncher.helper.getChangedAppTheme
-import app.olauncher.helper.getAppShortcuts
-import app.olauncher.helper.firstFreeHomePosition
-import app.olauncher.helper.refreshAfterHomeMutation
 import app.olauncher.helper.getColorFromAttr
 import app.olauncher.helper.getUserHandleFromString
 import app.olauncher.helper.isPackageInstalled
@@ -70,11 +63,8 @@ import app.olauncher.helper.openAlarmApp
 import app.olauncher.helper.openCalendar
 import app.olauncher.helper.openCameraApp
 import app.olauncher.helper.openDialerApp
-import app.olauncher.helper.openAppInfo
 import app.olauncher.helper.setPlainWallpaperByTheme
 import app.olauncher.helper.showToast
-import app.olauncher.helper.showAppActionDialog
-import app.olauncher.helper.startAppShortcut
 import app.olauncher.helper.createDialog
 import app.olauncher.helper.OlDialog
 import app.olauncher.listener.OnSwipeTouchListener
@@ -216,14 +206,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     override fun onLongClick(view: View): Boolean {
         when (view.id) {
-            R.id.homeApp1 -> showFixedAppMenu(1)
-            R.id.homeApp2 -> showFixedAppMenu(2)
-            R.id.homeApp3 -> showFixedAppMenu(3)
-            R.id.homeApp4 -> showFixedAppMenu(4)
-            R.id.homeApp5 -> showFixedAppMenu(5)
-            R.id.homeApp6 -> showFixedAppMenu(6)
-            R.id.homeApp7 -> showFixedAppMenu(7)
-            R.id.homeApp8 -> showFixedAppMenu(8)
+            R.id.homeApp1 -> showAppList(Constants.FLAG_SET_HOME_APP_1, prefs.appName1.isNotEmpty(), true)
+            R.id.homeApp2 -> showAppList(Constants.FLAG_SET_HOME_APP_2, prefs.appName2.isNotEmpty(), true)
+            R.id.homeApp3 -> showAppList(Constants.FLAG_SET_HOME_APP_3, prefs.appName3.isNotEmpty(), true)
+            R.id.homeApp4 -> showAppList(Constants.FLAG_SET_HOME_APP_4, prefs.appName4.isNotEmpty(), true)
+            R.id.homeApp5 -> showAppList(Constants.FLAG_SET_HOME_APP_5, prefs.appName5.isNotEmpty(), true)
+            R.id.homeApp6 -> showAppList(Constants.FLAG_SET_HOME_APP_6, prefs.appName6.isNotEmpty(), true)
+            R.id.homeApp7 -> showAppList(Constants.FLAG_SET_HOME_APP_7, prefs.appName7.isNotEmpty(), true)
+            R.id.homeApp8 -> showAppList(Constants.FLAG_SET_HOME_APP_8, prefs.appName8.isNotEmpty(), true)
             R.id.clock -> {
                 showAppList(Constants.FLAG_SET_CLOCK_APP)
                 prefs.clockAppPackage = ""
@@ -264,70 +254,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         return true
     }
 
-    private fun showFixedAppMenu(location: Int) {
-        val appName = prefs.getAppName(location)
-        if (appName.isBlank()) {
-            showAppList(location)
-            return
-        }
-        val appModel = homeAppModel(location)
-        val shortcuts = if (appModel is AppModel.App) {
-            requireContext().getAppShortcuts(appModel.appPackage, appModel.user)
-        } else {
-            emptyList()
-        }
-        val actions = appMenuActions(AppMenuSource.FIXED_APP).map { action ->
-            val label = when (action) {
-                AppMenuAction.REPLACE_HOME -> R.string.replace_home_app
-                AppMenuAction.REMOVE_FROM_HOME -> R.string.remove_from_home
-                AppMenuAction.INFO -> R.string.info
-                else -> R.string.close
-            }
-            AppDialogAction(getString(label)) {
-                when (action) {
-                    AppMenuAction.REPLACE_HOME -> showAppList(location, true, true)
-                    AppMenuAction.REMOVE_FROM_HOME -> {
-                        prefs.clearHomeApp(location)
-                        refreshHomeAndSuggestions()
-                    }
-                    AppMenuAction.INFO -> openAppInfo(requireContext(), appModel.user, appModel.appPackage)
-                    else -> Unit
-                }
-            }
-        }
-        requireContext().showAppActionDialog(
-            title = appName,
-            shortcuts = shortcuts,
-            onShortcut = { shortcut ->
-                if (!requireContext().startAppShortcut(appModel.appPackage, shortcut.id, appModel.user)) {
-                    requireContext().showToast(getString(R.string.unable_to_open_shortcut))
-                }
-            },
-            actions = actions,
-        )
-    }
-
-    private fun homeAppModel(location: Int): AppModel {
-        val user = getUserHandleFromString(requireContext(), prefs.getAppUser(location))
-        return if (prefs.getIsShortcut(location)) {
-            AppModel.PinnedShortcut(
-                appLabel = prefs.getAppName(location),
-                key = null,
-                appPackage = prefs.getAppPackage(location),
-                shortcutId = prefs.getShortcutId(location),
-                user = user,
-            )
-        } else {
-            AppModel.App(
-                appLabel = prefs.getAppName(location),
-                key = null,
-                appPackage = prefs.getAppPackage(location),
-                activityClassName = prefs.getAppActivityClassName(location),
-                user = user,
-            )
-        }
-    }
-
     private fun initObservers() {
         if (prefs.firstSettingsOpen) {
             binding.firstRunTips.visibility = View.VISIBLE
@@ -335,7 +261,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } else binding.firstRunTips.visibility = View.GONE
 
         viewModel.refreshHome.observe(viewLifecycleOwner) {
-            refreshHomeAndSuggestions(it)
+            populateHomeScreen(it)
         }
         viewModel.isOlauncherDefault.observe(viewLifecycleOwner, Observer {
             if (it != true) {
@@ -548,13 +474,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             prefs.appName8 = ""
             prefs.appPackage8 = ""
         }
-    }
-
-    private fun refreshHomeAndSuggestions(appCountUpdated: Boolean = false) {
-        refreshAfterHomeMutation(
-            refreshHome = { populateHomeScreen(appCountUpdated) },
-            refreshSuggestions = ::refreshContextualSuggestions,
-        )
     }
 
     private fun homeAppVerticalPadding(): Int =
@@ -1285,87 +1204,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             launchApp(app.label, app.packageName, app.activityClassName, app.user)
         }
 
-        override fun onLongClick(view: View) {
-            showSuggestedAppMenu(app)
-        }
-
         override fun isTapInsideHitTarget(view: View, event: android.view.MotionEvent): Boolean =
             isTapInsideTextHitTarget(view, event)
-    }
-
-    private fun showSuggestedAppMenu(app: ContextualApp) {
-        val appModel = AppModel.App(
-            appLabel = app.label,
-            key = null,
-            appPackage = app.packageName,
-            activityClassName = app.activityClassName,
-            user = getUserHandleFromString(requireContext(), app.user),
-        )
-        val actions = appMenuActions(AppMenuSource.SUGGESTED_APP).map { action ->
-            val label = when (action) {
-                AppMenuAction.PIN_TO_HOME -> R.string.pin_to_home
-                AppMenuAction.REMOVE_FROM_SUGGESTIONS -> R.string.remove_from_suggestions
-                AppMenuAction.INFO -> R.string.info
-                else -> R.string.close
-            }
-            AppDialogAction(getString(label)) {
-                when (action) {
-                    AppMenuAction.PIN_TO_HOME -> pinSuggestedAppToHome(appModel)
-                    AppMenuAction.REMOVE_FROM_SUGGESTIONS -> confirmSuggestionRemoval(app)
-                    AppMenuAction.INFO -> openAppInfo(requireContext(), appModel.user, appModel.appPackage)
-                    else -> Unit
-                }
-            }
-        }
-        requireContext().showAppActionDialog(
-            title = app.label,
-            shortcuts = requireContext().getAppShortcuts(app.packageName, appModel.user),
-            onShortcut = { shortcut ->
-                if (!requireContext().startAppShortcut(app.packageName, shortcut.id, appModel.user)) {
-                    requireContext().showToast(getString(R.string.unable_to_open_shortcut))
-                }
-            },
-            actions = actions,
-        )
-    }
-
-    private fun pinSuggestedAppToHome(appModel: AppModel.App) {
-        if (prefs.homeAppsNum == 0) prefs.homeAppsNum = 1
-        val positions = 1..prefs.homeAppsNum.coerceAtMost(Constants.MAX_HOME_ITEMS)
-        val freePosition = firstFreeHomePosition(
-            packageNames = (1..Constants.MAX_HOME_ITEMS).map(prefs::getAppPackage),
-            visibleCount = prefs.homeAppsNum,
-        )
-        if (freePosition != null) {
-            viewModel.selectedApp(appModel, freePosition)
-            refreshHomeAndSuggestions()
-            return
-        }
-        requireContext().showAppActionDialog(
-            title = getString(R.string.choose_home_position),
-            shortcuts = emptyList(),
-            onShortcut = {},
-            actions = positions.map { position ->
-                AppDialogAction("$position. ${prefs.getAppName(position)}") {
-                    viewModel.selectedApp(appModel, position)
-                    refreshHomeAndSuggestions()
-                }
-            },
-        )
-    }
-
-    private fun confirmSuggestionRemoval(app: ContextualApp) {
-        val dialog = requireContext().createDialog(
-            title = R.string.remove_from_suggestions,
-            action = R.string.remove,
-            neutral = R.string.cancel,
-            message = R.string.remove_from_suggestions_message,
-            onAction = {
-                prefs.removeContextualCandidate(app.identity)
-                refreshContextualSuggestions()
-            },
-        )
-        dialog.showRespectingStatusBar()
     }
 
     private fun isTapInsideTextHitTarget(view: View, event: android.view.MotionEvent): Boolean {

@@ -119,12 +119,6 @@
     <string name="info">Info</string>
     <string name="delete">Uninstall</string>
     <string name="remove">Remove</string>
-    <string name="pin_to_home" tools:ignore="MissingTranslation">Pin to home screen</string>
-    <string name="replace_home_app" tools:ignore="MissingTranslation">Replace home app</string>
-    <string name="remove_from_home" tools:ignore="MissingTranslation">Remove from home screen</string>
-    <string name="choose_home_position" tools:ignore="MissingTranslation">Choose a home position</string>
-    <string name="remove_from_suggestions" tools:ignore="MissingTranslation">Remove from suggestions</string>
-    <string name="remove_from_suggestions_message" tools:ignore="MissingTranslation">This app will no longer appear automatically in contextual suggestions. You can add it again in Settings.</string>
     <string name="text_size">Text size</string>
     <string name="bold_font">Bold font</string>
     <string name="enabled">Enabled</string>

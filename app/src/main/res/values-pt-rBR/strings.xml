@@ -96,12 +96,6 @@
     <string name="info">Informação</string>
     <string name="delete">Desinstalar</string>
     <string name="remove">Remover</string>
-    <string name="pin_to_home">Fixar na tela inicial</string>
-    <string name="replace_home_app">Substituir app da tela inicial</string>
-    <string name="remove_from_home">Remover da tela inicial</string>
-    <string name="choose_home_position">Escolha uma posição da tela inicial</string>
-    <string name="remove_from_suggestions">Remover das sugestões</string>
-    <string name="remove_from_suggestions_message">Este app deixará de aparecer automaticamente nas sugestões contextuais. Você poderá adicioná-lo novamente nas configurações.</string>
     <string name="text_size">Tamanho do texto</string>
     <string name="enabled">Ativado</string>
     <string name="disabled">Desativado</string>

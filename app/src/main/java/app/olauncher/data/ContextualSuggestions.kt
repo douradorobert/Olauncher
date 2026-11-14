@@ -15,20 +15,6 @@ data class ContextualApp(
     val identity: String get() = "$packageName|$user"
 }
 
-data class ContextualCandidateRemoval(
-    val candidates: Set<String>,
-    val rules: Map<String, ContextualRule>,
-)
-
-fun removeContextualCandidate(
-    identity: String,
-    candidates: Set<String>,
-    rules: Map<String, ContextualRule>,
-): ContextualCandidateRemoval = ContextualCandidateRemoval(
-    candidates = candidates - identity,
-    rules = rules - identity,
-)
-
 data class ContextualRule(
     val appIdentity: String,
     val startMinutes: Int? = null,
