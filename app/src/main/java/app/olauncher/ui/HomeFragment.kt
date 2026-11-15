@@ -577,6 +577,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             currentDayOfWeek = currentTime.get(Calendar.DAY_OF_WEEK),
             rules = prefs.contextualRules(),
             limit = suggestionLimit,
+            minimumScore = prefs.contextualMinimumScore,
             signals = ContextualSignals(
                 bluetoothConnected = carBluetoothConnected,
                 connectedBluetoothAddresses = connectedBluetoothAddresses,

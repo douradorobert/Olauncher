@@ -38,6 +38,8 @@ class Prefs(context: Context) {
     private val CONTEXTUAL_HISTORY = "CONTEXTUAL_HISTORY"
     private val CONTEXTUAL_RULES = "CONTEXTUAL_RULES"
     private val CONTEXTUAL_MIXED = "CONTEXTUAL_MIXED"
+    private val CONTEXTUAL_MINIMUM_SCORE = "CONTEXTUAL_MINIMUM_SCORE"
+    private val SEPARATE_CONTEXTUAL_DAY_PROFILES = "SEPARATE_CONTEXTUAL_DAY_PROFILES"
     private val HOME_LOCATION_SET = "HOME_LOCATION_SET"
     private val HOME_LATITUDE = "HOME_LATITUDE"
     private val HOME_LONGITUDE = "HOME_LONGITUDE"
@@ -304,6 +306,16 @@ class Prefs(context: Context) {
         get() = prefs.getBoolean(CONTEXTUAL_MIXED, true)
         set(value) = prefs.edit { putBoolean(CONTEXTUAL_MIXED, value).apply() }
 
+    var contextualMinimumScore: Int
+        get() = ContextualSuggestions.normalizedMinimumScore(prefs.getInt(CONTEXTUAL_MINIMUM_SCORE, 20))
+        set(value) = prefs.edit {
+            putInt(CONTEXTUAL_MINIMUM_SCORE, ContextualSuggestions.normalizedMinimumScore(value)).apply()
+        }
+
+    var separateContextualDayProfiles: Boolean
+        get() = prefs.getBoolean(SEPARATE_CONTEXTUAL_DAY_PROFILES, false)
+        set(value) = prefs.edit { putBoolean(SEPARATE_CONTEXTUAL_DAY_PROFILES, value).apply() }
+
     fun contextualRules(): Map<String, ContextualRule> {
         return ContextualRuleCodec.decode(prefs.getString(CONTEXTUAL_RULES, "[]") ?: "[]")
     }
@@ -409,6 +421,7 @@ class Prefs(context: Context) {
             minute = minute,
             nowMillis = nowMillis,
             timeZone = timeZone,
+            separateDayProfiles = separateContextualDayProfiles,
         )
         if (update.changed) prefs.edit { putString(CONTEXTUAL_HISTORY, update.serialized) }
         return update.score

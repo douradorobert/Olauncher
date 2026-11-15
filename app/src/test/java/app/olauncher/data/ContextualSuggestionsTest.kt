@@ -24,6 +24,13 @@ class ContextualSuggestionsTest {
     }
 
     @Test
+    fun `minimum score is clamped and rounded to ten point steps`() {
+        assertEquals(0, ContextualSuggestions.normalizedMinimumScore(-1))
+        assertEquals(20, ContextualSuggestions.normalizedMinimumScore(15))
+        assertEquals(200, ContextualSuggestions.normalizedMinimumScore(205))
+    }
+
+    @Test
     fun `hidden home slots do not exclude suggestion candidates`() {
         assertEquals(
             setOf("photos", "whatsapp", "gmail", "firefox"),
@@ -49,6 +56,39 @@ class ContextualSuggestionsTest {
         assertEquals(
             listOf("Two launches"),
             ContextualSuggestions.rank(listOf(app("Two launches", 20)), null).map { it.label },
+        )
+    }
+
+    @Test
+    fun `configured threshold controls final score eligibility`() {
+        assertEquals(
+            listOf("Unused"),
+            ContextualSuggestions.rank(listOf(app("Unused")), null, minimumScore = 0).map { it.label },
+        )
+        assertEquals(
+            emptyList<ContextualApp>(),
+            ContextualSuggestions.rank(listOf(app("One launch", 10)), null, minimumScore = 20),
+        )
+        assertEquals(
+            listOf("Two launches"),
+            ContextualSuggestions.rank(listOf(app("Two launches", 20)), null, minimumScore = 20).map { it.label },
+        )
+    }
+
+    @Test
+    fun `threshold is applied after explicit rule bonus`() {
+        val lamp = app("Lamp")
+        val rules = mapOf(lamp.identity to ContextualRule(lamp.identity, atHome = true))
+
+        assertEquals(
+            listOf("Lamp"),
+            ContextualSuggestions.rank(
+                listOf(lamp),
+                null,
+                atHome = true,
+                rules = rules,
+                minimumScore = 200,
+            ).map { it.label },
         )
     }
 

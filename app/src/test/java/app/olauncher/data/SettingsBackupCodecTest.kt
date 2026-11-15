@@ -12,6 +12,9 @@ class SettingsBackupCodecTest {
             mapOf(
                 "CONTEXTUAL_SUGGESTIONS" to true,
                 "CONTEXTUAL_APPS" to setOf("lamp|user"),
+                "CONTEXTUAL_MINIMUM_SCORE" to 40,
+                "SEPARATE_CONTEXTUAL_DAY_PROFILES" to true,
+                "CONTEXTUAL_HISTORY" to "history",
                 "APP_SPACING_SCALE" to 0.8f,
                 "HOME_WIFI_NAME" to "Robert",
             ),
@@ -20,6 +23,9 @@ class SettingsBackupCodecTest {
         assertTrue(values.isNotEmpty())
         assertEquals(true, values["CONTEXTUAL_SUGGESTIONS"])
         assertEquals(setOf("lamp|user"), values["CONTEXTUAL_APPS"])
+        assertEquals(40, values["CONTEXTUAL_MINIMUM_SCORE"])
+        assertEquals(true, values["SEPARATE_CONTEXTUAL_DAY_PROFILES"])
+        assertFalse("CONTEXTUAL_HISTORY" in values)
         assertFalse("HOME_WIFI_NAME" in values)
     }
 }

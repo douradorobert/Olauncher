@@ -42,6 +42,8 @@ data class ContextualSignals(
 )
 
 object ContextualSuggestions {
+    private const val MINIMUM_SCORE_STEP = 10
+    private const val MAXIMUM_MINIMUM_SCORE = 200
     private val healthTerms = setOf(
         "consulta", "medico", "medica", "dentista", "exame", "clinica", "hospital",
         "terapia", "fisioterapia", "doctor", "appointment",
@@ -52,6 +54,11 @@ object ContextualSuggestions {
     fun normalizedMaximumItems(fixedAppCount: Int, configuredMaximum: Int): Int {
         val normalizedFixedCount = fixedAppCount.coerceIn(0, Constants.MAX_HOME_ITEMS)
         return configuredMaximum.coerceIn(0, Constants.MAX_HOME_ITEMS).coerceAtLeast(normalizedFixedCount)
+    }
+
+    fun normalizedMinimumScore(configured: Int): Int {
+        val clamped = configured.coerceIn(0, MAXIMUM_MINIMUM_SCORE)
+        return ((clamped + MINIMUM_SCORE_STEP / 2) / MINIMUM_SCORE_STEP) * MINIMUM_SCORE_STEP
     }
 
     fun availableSuggestionSlots(fixedAppCount: Int, maximumItems: Int): Int =
