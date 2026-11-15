@@ -137,4 +137,29 @@ class ContextualUsageRepositoryTest {
         assertEquals(3, org.json.JSONObject(update.serialized).getInt("version"))
         assertFalse(ContextualUsageHistoryCodec.decode(update.serialized, currentDay).requiresRewrite)
     }
+
+    @Test
+    fun `day profile scoring never rewrites valid history`() {
+        val serialized = ContextualUsageHistoryCodec.encode(
+            listOf(
+                ContextualUsageEntry("spotify|user", 20, currentDay, 1.0),
+                ContextualUsageEntry("spotify|user", 20, currentDay - 1, 1.0),
+            ),
+        )
+
+        listOf(false, true).forEach { separate ->
+            val update = ContextualUsageRepository.updateSerializedHistory(
+                serialized = serialized,
+                appIdentity = "spotify|user",
+                hour = 10,
+                minute = 0,
+                nowMillis = nowMillis,
+                timeZone = utc,
+                separateDayProfiles = separate,
+            )
+
+            assertFalse(update.changed)
+            assertEquals(serialized, update.serialized)
+        }
+    }
 }

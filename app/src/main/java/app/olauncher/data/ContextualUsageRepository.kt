@@ -17,6 +17,7 @@ object ContextualUsageRepository {
         nowMillis: Long,
         timeZone: TimeZone,
         recordLaunch: Boolean = false,
+        separateDayProfiles: Boolean = false,
     ): ContextualUsageUpdate {
         val currentDay = ContextualUsageHistory.localEpochDay(nowMillis, timeZone)
         val decoded = ContextualUsageHistoryCodec.decode(serialized, currentDay)
@@ -29,7 +30,14 @@ object ContextualUsageRepository {
         val changed = decoded.requiresRewrite || updated != decoded.entries
         return ContextualUsageUpdate(
             serialized = if (changed) ContextualUsageHistoryCodec.encode(updated) else serialized,
-            score = ContextualUsageHistory.score(updated, appIdentity, hour, minute, currentDay),
+            score = ContextualUsageHistory.score(
+                updated,
+                appIdentity,
+                hour,
+                minute,
+                currentDay,
+                separateDayProfiles,
+            ),
             changed = changed,
         )
     }

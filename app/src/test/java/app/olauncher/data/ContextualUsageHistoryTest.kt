@@ -25,6 +25,17 @@ class ContextualUsageHistoryTest {
     }
 
     @Test
+    fun `epoch days classify weekdays and weekends across zero`() {
+        assertEquals(false, ContextualUsageHistory.isWeekend(0)) // Thursday
+        assertEquals(true, ContextualUsageHistory.isWeekend(2)) // Saturday
+        assertEquals(true, ContextualUsageHistory.isWeekend(3)) // Sunday
+        assertEquals(false, ContextualUsageHistory.isWeekend(4)) // Monday
+        assertEquals(true, ContextualUsageHistory.isWeekend(-5)) // Saturday
+        assertEquals(true, ContextualUsageHistory.isWeekend(-4)) // Sunday
+        assertEquals(false, ContextualUsageHistory.isWeekend(-3)) // Monday
+    }
+
+    @Test
     fun `temporal weights decay over six half-hour distances`() {
         val expected = listOf(1.0, 0.75, 0.5, 0.375, 0.25, 0.125, 0.0)
 
@@ -109,6 +120,34 @@ class ContextualUsageHistoryTest {
             entry(bucket = 24, day = 100, mass = 1.0),
         )
         assertEquals(5, ContextualUsageHistory.score(entries, "spotify", 10, 0, 100))
+    }
+
+    @Test
+    fun `disabled day profiles preserve the combined score`() {
+        val entries = listOf(
+            entry(day = 11, mass = 1.0), // Monday
+            entry(day = 9, mass = 1.0), // Saturday
+        )
+
+        assertEquals(
+            ContextualUsageHistory.score(entries, "spotify", 10, 0, 11),
+            ContextualUsageHistory.score(entries, "spotify", 10, 0, 11, separateDayProfiles = false),
+        )
+    }
+
+    @Test
+    fun `enabled day profiles isolate weekday and weekend history`() {
+        val weekdayQuery = listOf(
+            entry(day = 11, mass = 1.0), // Monday
+            entry(day = 9, mass = 3.0), // Saturday
+        )
+        val weekendQuery = listOf(
+            entry(day = 9, mass = 1.0), // Saturday
+            entry(day = 8, mass = 3.0), // Friday
+        )
+
+        assertEquals(10, ContextualUsageHistory.score(weekdayQuery, "spotify", 10, 0, 11, separateDayProfiles = true))
+        assertEquals(10, ContextualUsageHistory.score(weekendQuery, "spotify", 10, 0, 9, separateDayProfiles = true))
     }
 
     @Test

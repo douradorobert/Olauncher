@@ -27,6 +27,9 @@ object ContextualUsageHistory {
     fun timeBucket(hour: Int, minute: Int): Int =
         hour.coerceIn(0, 23) * 2 + minute.coerceIn(0, 59) / 30
 
+    fun isWeekend(epochDay: Long): Boolean =
+        (Math.floorMod(epochDay, 7L) + 3L) % 7L >= 5L
+
     fun temporalWeight(sourceBucket: Int, targetBucket: Int): Double {
         if (sourceBucket !in 0 until BUCKETS_PER_DAY || targetBucket !in 0 until BUCKETS_PER_DAY) return 0.0
         val directDistance = abs(sourceBucket - targetBucket)
@@ -84,10 +87,13 @@ object ContextualUsageHistory {
         hour: Int,
         minute: Int,
         currentEpochDay: Long,
+        separateDayProfiles: Boolean = false,
     ): Int {
         val bucket = timeBucket(hour, minute)
+        val currentIsWeekend = isWeekend(currentEpochDay)
         return entries.asSequence()
             .filter { it.isValid() && it.appIdentity == appIdentity }
+            .filter { !separateDayProfiles || isWeekend(it.epochDay) == currentIsWeekend }
             .map { entry -> (currentEpochDay - entry.epochDay).coerceAtLeast(0L) to entry }
             .filter { (age, _) -> age <= MAX_AGE_DAYS }
             .sumOf { (age, entry) ->
