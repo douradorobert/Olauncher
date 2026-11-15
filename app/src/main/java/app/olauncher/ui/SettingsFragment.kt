@@ -619,8 +619,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun updateHomeAppsNum(num: Int) {
+        val previousMaximum = prefs.maximumHomeItems
         binding.homeAppsNum.text = num.toString()
         prefs.homeAppsNum = num
+        if (previousMaximum < num) prefs.maximumHomeItems = num
         viewModel.refreshHome(true)
     }
 

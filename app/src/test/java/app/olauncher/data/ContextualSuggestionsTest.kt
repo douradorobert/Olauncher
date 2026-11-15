@@ -11,8 +11,16 @@ class ContextualSuggestionsTest {
     @Test
     fun `fixed apps and suggestions never exceed home limit`() {
         assertEquals(3, ContextualSuggestions.availableSuggestionSlots(fixedAppCount = 5, maximumItems = 8))
-        assertEquals(0, ContextualSuggestions.availableSuggestionSlots(fixedAppCount = 8, maximumItems = 8))
-        assertEquals(0, ContextualSuggestions.availableSuggestionSlots(fixedAppCount = 10, maximumItems = 8))
+        assertEquals(0, ContextualSuggestions.availableSuggestionSlots(fixedAppCount = 5, maximumItems = 3))
+        assertEquals(3, ContextualSuggestions.availableSuggestionSlots(fixedAppCount = 5, maximumItems = 99))
+    }
+
+    @Test
+    fun `configured home maximum stays within bounds and never below fixed apps`() {
+        assertEquals(5, ContextualSuggestions.normalizedMaximumItems(fixedAppCount = 5, configuredMaximum = 3))
+        assertEquals(8, ContextualSuggestions.normalizedMaximumItems(fixedAppCount = 5, configuredMaximum = 99))
+        assertEquals(5, ContextualSuggestions.normalizedMaximumItems(fixedAppCount = 5, configuredMaximum = -1))
+        assertEquals(0, ContextualSuggestions.normalizedMaximumItems(fixedAppCount = -1, configuredMaximum = -1))
     }
 
     @Test

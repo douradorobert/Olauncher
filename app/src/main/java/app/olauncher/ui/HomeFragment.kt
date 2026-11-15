@@ -567,7 +567,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val outsideByLocation = distanceFromHome?.let { it > 300f } ?: false
         val atHome = onHomeWifi || distanceFromHome?.let { it <= 300f } == true
         val outsideHome = outsideByLocation && !onHomeWifi
-        val suggestionLimit = ContextualSuggestions.availableSuggestionSlots(prefs.homeAppsNum, Constants.MAX_HOME_ITEMS)
+        val suggestionLimit = ContextualSuggestions.availableSuggestionSlots(prefs.homeAppsNum, prefs.maximumHomeItems)
         val suggestions = ContextualSuggestions.rank(
             candidates = candidates,
             event = contextEvent,

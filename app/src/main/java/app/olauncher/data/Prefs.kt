@@ -17,6 +17,7 @@ class Prefs(context: Context) {
     private val USER_STATE = "USER_STATE"
     private val LOCK_MODE = "LOCK_MODE"
     private val HOME_APPS_NUM = "HOME_APPS_NUM"
+    private val MAXIMUM_HOME_ITEMS = "MAXIMUM_HOME_ITEMS"
     private val AUTO_SHOW_KEYBOARD = "AUTO_SHOW_KEYBOARD"
     private val KEYBOARD_MESSAGE = "KEYBOARD_MESSAGE"
     private val DAILY_WALLPAPER = "DAILY_WALLPAPER"
@@ -197,6 +198,18 @@ class Prefs(context: Context) {
     var homeAppsNum: Int
         get() = prefs.getInt(HOME_APPS_NUM, 4)
         set(value) = prefs.edit { putInt(HOME_APPS_NUM, value).apply() }
+
+    var maximumHomeItems: Int
+        get() = ContextualSuggestions.normalizedMaximumItems(
+            fixedAppCount = homeAppsNum,
+            configuredMaximum = prefs.getInt(MAXIMUM_HOME_ITEMS, Constants.MAX_HOME_ITEMS),
+        )
+        set(value) = prefs.edit {
+            putInt(
+                MAXIMUM_HOME_ITEMS,
+                ContextualSuggestions.normalizedMaximumItems(homeAppsNum, value),
+            ).apply()
+        }
 
     var homeAlignment: Int
         get() = prefs.getInt(HOME_ALIGNMENT, Gravity.START)

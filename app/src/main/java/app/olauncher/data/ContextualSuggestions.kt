@@ -49,8 +49,13 @@ object ContextualSuggestions {
     private val healthAppTerms = setOf("saude", "health", "bradesco")
     private val navigationAppTerms = setOf("maps", "mapas", "waze")
 
+    fun normalizedMaximumItems(fixedAppCount: Int, configuredMaximum: Int): Int {
+        val normalizedFixedCount = fixedAppCount.coerceIn(0, Constants.MAX_HOME_ITEMS)
+        return configuredMaximum.coerceIn(0, Constants.MAX_HOME_ITEMS).coerceAtLeast(normalizedFixedCount)
+    }
+
     fun availableSuggestionSlots(fixedAppCount: Int, maximumItems: Int): Int =
-        (maximumItems - fixedAppCount).coerceAtLeast(0)
+        normalizedMaximumItems(fixedAppCount, maximumItems) - fixedAppCount.coerceIn(0, Constants.MAX_HOME_ITEMS)
 
     fun visiblePinnedPackages(packageNames: List<String>, visibleAppCount: Int): Set<String> =
         packageNames.take(visibleAppCount.coerceAtLeast(0)).filter(String::isNotBlank).toSet()
