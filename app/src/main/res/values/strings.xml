@@ -149,6 +149,7 @@
     <string name="mindful_apps" tools:ignore="MissingTranslation">Apps with opening delay</string>
     <string name="contextual_suggestions" tools:ignore="MissingTranslation">Contextual suggestions</string>
     <string name="contextual_apps" tools:ignore="MissingTranslation">Suggested apps</string>
+    <string name="maximum_home_items" tools:ignore="MissingTranslation">Maximum apps on home screen</string>
     <string name="suggestion_display" tools:ignore="MissingTranslation">Suggestion display</string>
     <string name="mixed" tools:ignore="MissingTranslation">Mixed</string>
     <string name="separate" tools:ignore="MissingTranslation">Separate</string>

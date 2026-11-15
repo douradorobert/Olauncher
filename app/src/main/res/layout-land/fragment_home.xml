@@ -90,18 +90,12 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Home apps: centered when they fit, scrollable when they do not. -->
-    <ScrollView
-        android:id="@+id/homeAppsScroll"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
-
+    <!-- Home apps: centered in the remaining non-scrollable space. -->
     <LinearLayout
         android:id="@+id/homeAppsLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginHorizontal="74dp"
         android:gravity="center_vertical"
         android:orientation="vertical"
@@ -220,8 +214,6 @@
             android:visibility="gone" />
 
     </LinearLayout>
-
-    </ScrollView>
 
     </LinearLayout>
 

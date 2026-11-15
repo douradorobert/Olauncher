@@ -172,6 +172,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.mindfulApps -> showAppListIfEnabled(Constants.FLAG_MINDFUL_APPS)
             R.id.contextualSuggestions -> toggleContextualSuggestions()
             R.id.contextualApps -> showAppListIfEnabled(Constants.FLAG_CONTEXTUAL_APPS)
+            R.id.maximumHomeItems -> showMaximumHomeItemsMenu(view)
             R.id.suggestionDisplay -> toggleSuggestionDisplay()
             R.id.suggestionRules -> showSuggestionRules()
             R.id.homeLocation -> saveCurrentLocationAsHome()
@@ -242,6 +243,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.mindfulApps.setOnClickListener(this)
         binding.contextualSuggestions.setOnClickListener(this)
         binding.contextualApps.setOnClickListener(this)
+        binding.maximumHomeItems.setOnClickListener(this)
         binding.suggestionDisplay.setOnClickListener(this)
         binding.suggestionRules.setOnClickListener(this)
         binding.homeLocation.setOnClickListener(this)
@@ -294,6 +296,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 for (num in 0..8) menu.add(Menu.NONE, num, num, num.toString())
             }
         ) { item -> updateHomeAppsNum(item.itemId) }
+    }
+
+    private fun showMaximumHomeItemsMenu(anchor: View) {
+        anchor.showPopupMenu(
+            configure = { menu ->
+                for (num in prefs.homeAppsNum..Constants.MAX_HOME_ITEMS) {
+                    menu.add(Menu.NONE, num, num, num.toString())
+                }
+            }
+        ) { item -> updateMaximumHomeItems(item.itemId) }
     }
 
     private fun showDateTimeMenu(anchor: View) {
@@ -623,7 +635,14 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.homeAppsNum.text = num.toString()
         prefs.homeAppsNum = num
         if (previousMaximum < num) prefs.maximumHomeItems = num
+        binding.maximumHomeItems.text = NumberFormat.getIntegerInstance().format(prefs.maximumHomeItems)
         viewModel.refreshHome(true)
+    }
+
+    private fun updateMaximumHomeItems(maximum: Int) {
+        prefs.maximumHomeItems = maximum
+        binding.maximumHomeItems.text = NumberFormat.getIntegerInstance().format(prefs.maximumHomeItems)
+        viewModel.refreshHome(false)
     }
 
     private var pendingTextSizeScale: Float = -1f
@@ -793,6 +812,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         val enabled = prefs.contextualSuggestionsEnabled
         binding.contextualSuggestions.setText(if (enabled) R.string.on else R.string.off)
         binding.contextualApps.text = NumberFormat.getIntegerInstance().format(prefs.contextualApps.size)
+        binding.maximumHomeItems.text = NumberFormat.getIntegerInstance().format(prefs.maximumHomeItems)
         binding.suggestionDisplay.setText(if (prefs.contextualSuggestionsMixed) R.string.mixed else R.string.separate)
         binding.homeLocation.setText(if (prefs.homeLocationSet) R.string.on else R.string.set)
         val homeWifiNames = prefs.homeWifiNames.sorted().joinToString(", ")
@@ -805,6 +825,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.carBluetooth.text = prefs.carBluetoothName.ifBlank { getString(R.string.set) }
         listOf(
             binding.contextualAppsRow to binding.contextualApps,
+            binding.maximumHomeItemsRow to binding.maximumHomeItems,
             binding.suggestionDisplayRow to binding.suggestionDisplay,
             binding.suggestionRulesRow to binding.suggestionRules,
             binding.homeLocationRow to binding.homeLocation,
