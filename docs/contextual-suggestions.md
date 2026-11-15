@@ -13,6 +13,18 @@ As sugestões contextuais escolhem, entre os aplicativos configurados pelo usuá
 7. Os restantes são ordenados pela pontuação final, da maior para a menor. Empates são resolvidos pelo nome do aplicativo em ordem alfabética.
 8. A lista é limitada às vagas disponíveis entre os aplicativos fixos visíveis e o máximo configurado para a tela inicial.
 
+<p align="center">
+  <img src="images/home-contextual.png" width="300" alt="Tela inicial com sugestões contextuais intercaladas entre aplicativos fixos">
+</p>
+
+Na tela inicial acima, **Câmera**, **Relógio**, **Contatos** e **Configurações** são aplicativos fixos; os demais nomes foram inseridos pelo pipeline de sugestões. A mesma tela também ilustra como agenda e clima participam da experiência sem transformar o launcher em uma grade de widgets.
+
+<p align="center">
+  <img src="images/suggestion-apps.png" width="300" alt="Lista de aplicativos selecionáveis para regras de sugestão contextual">
+</p>
+
+Somente aplicativos escolhidos pelo usuário participam da seleção. A marca ao lado do nome indica que já existe uma regra contextual configurada para aquele aplicativo.
+
 ## Pontuação aprendida
 
 O dia é dividido em 48 intervalos de 30 minutos. Cada abertura registrada possui:
@@ -63,6 +75,18 @@ Depois da pontuação aprendida, podem ser adicionados estes bônus:
 
 Os bônus são cumulativos. O limiar é comparado com a pontuação final, depois da soma de todos eles. Por exemplo, um aplicativo de navegação com 5 pontos aprendidos, um compromisso com destino (+80) e o usuário fora de casa (+30) termina com 115 pontos.
 
+<p align="center">
+  <img src="images/contextual-rule.png" width="300" alt="Editor de regra contextual com intervalo de horário, dias válidos e condições">
+</p>
+
+As regras podem combinar horário, dias válidos, texto do calendário, presença em casa, Bluetooth e Android Auto. O ícone de informação no editor explica como as condições são combinadas.
+
+Eventos próximos podem ser consultados diretamente pela tela inicial. Quando um compromisso relevante entra na janela avaliada, seu título e local também podem contribuir para os bônus descritos acima.
+
+<p align="center">
+  <img src="images/upcoming-events.png" width="300" alt="Lista de próximos eventos acessada pela tela inicial do launcher">
+</p>
+
 ## Limiar mínimo
 
 O usuário escolhe a pontuação mínima em **Configurações > Sugestões contextuais > Pontuação mínima da sugestão**.
@@ -74,6 +98,12 @@ O usuário escolhe a pontuação mínima em **Configurações > Sugestões conte
 - O valor 0 permite candidatos sem histórico ou bônus, desde que eles passem pelas demais regras e existam vagas na tela inicial.
 
 O ícone de informação no seletor mostra um resumo da fórmula e dos bônus no próprio aplicativo.
+
+<p align="center">
+  <img src="images/suggestion-settings.png" width="360" alt="Seção de sugestões com máximo de itens, limiar mínimo, perfis de dias e modo de exibição">
+</p>
+
+A seção reúne em um único lugar os candidatos, o máximo total de itens na tela inicial, o limiar, a separação de perfis e o modo de exibição. Na captura, o limiar está em `0` apenas para demonstrar sugestões sem histórico suficiente; o padrão continua sendo `20`.
 
 ## Perfis de dias úteis e fins de semana
 
@@ -89,3 +119,9 @@ A separação afeta apenas a pontuação aprendida. Regras e bônus contextuais 
 O histórico permanece armazenado localmente em JSON versão 3. Não foi adicionado um campo de dia da semana, pois o `epochDay` permite derivá-lo sem custo relevante e evita uma migração de dados. As entradas antigas continuam válidas, e alternar a separação de perfis apenas muda o filtro usado durante o cálculo.
 
 O histórico de aberturas não é incluído no backup de configurações. Já as preferências do limiar mínimo e da separação entre dias úteis e fins de semana são incluídas, assim como as demais configurações contextuais elegíveis. Portanto, restaurar um backup preserva essas escolhas, mas o aprendizado de uso recomeça com o histórico local do dispositivo de destino.
+
+<p align="center">
+  <img src="images/backup-restore.png" width="420" alt="Seção de backup e restauração das configurações do launcher">
+</p>
+
+As ações de exportação e importação ficam na própria tela de configurações. O seletor de arquivos só é aberto depois que o usuário escolhe uma dessas ações.
