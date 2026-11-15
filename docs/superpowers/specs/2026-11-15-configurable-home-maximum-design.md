@@ -21,4 +21,3 @@ Persist a `maximumHomeItems` preference and use it in the existing contextual-su
 - Values remain in `0..8` and never below the fixed-app count.
 - Preserve the existing fixed app storage and contextual ranking behavior.
 - Keep portrait and landscape resources structurally consistent even though normal phone use is portrait-only.
-

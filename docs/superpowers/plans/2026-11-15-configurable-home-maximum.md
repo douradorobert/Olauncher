@@ -41,4 +41,3 @@
 - [ ] Remove the app `ScrollView` from both layout variants.
 - [ ] Add the maximum-items row and popup behavior to Suggestions settings.
 - [ ] Run unit tests, lint, resource compilation, and debug assembly.
-
