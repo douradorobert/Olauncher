@@ -84,6 +84,8 @@ class AppDrawerFragment : BaseFragment() {
             binding.search.queryHint = getString(R.string.hidden_apps)
         else if (flag == Constants.FLAG_MINDFUL_APPS)
             binding.search.queryHint = getString(R.string.mindful_apps)
+        else if (flag == Constants.FLAG_CONTEXTUAL_APPS)
+            binding.search.queryHint = getString(R.string.contextual_apps)
         else if (flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_CALENDAR_APP)
             binding.search.queryHint = "Please select an app"
         try {
@@ -152,9 +154,10 @@ class AppDrawerFragment : BaseFragment() {
         adapter = AppDrawerAdapter(
             flag,
             prefs.appLabelAlignment,
+            prefs.appSpacingScale,
             appClickListener = { appModel ->
                 viewModel.selectedApp(appModel, flag)
-                if (flag == Constants.FLAG_MINDFUL_APPS) {
+                if (flag == Constants.FLAG_MINDFUL_APPS || flag == Constants.FLAG_CONTEXTUAL_APPS) {
                     adapter.notifyDataSetChanged()
                 } else if (flag == Constants.FLAG_LAUNCH_APP || flag == Constants.FLAG_HIDDEN_APPS)
                     findNavController().popBackStack(R.id.mainFragment, false)
@@ -233,7 +236,8 @@ class AppDrawerFragment : BaseFragment() {
             },
             appSelected = { appModel ->
                 appModel is AppModel.App &&
-                    appModel.appPackage + "|" + appModel.user in prefs.mindfulApps
+                    appModel.appPackage + "|" + appModel.user in
+                    if (flag == Constants.FLAG_CONTEXTUAL_APPS) prefs.contextualApps else prefs.mindfulApps
             },
             privateSpaceToggleListener = {
                 viewModel.togglePrivateSpaceLock()

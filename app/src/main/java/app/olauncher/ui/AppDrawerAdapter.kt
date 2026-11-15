@@ -24,10 +24,12 @@ import app.olauncher.helper.appLabelMatches
 import app.olauncher.helper.hideKeyboard
 import app.olauncher.helper.isSystemApp
 import app.olauncher.helper.showKeyboard
+import kotlin.math.roundToInt
 
 class AppDrawerAdapter(
     private var flag: Int,
     private val appLabelGravity: Int,
+    private val appSpacingScale: Float,
     private val appClickListener: (AppModel) -> Unit,
     private val appInfoListener: (AppModel) -> Unit,
     private val appDeleteListener: (AppModel) -> Unit,
@@ -105,6 +107,7 @@ class AppDrawerAdapter(
                 is PrivateSpaceHeaderViewHolder -> {
                     holder.bind(
                         appLabelGravity,
+                        appSpacingScale,
                         privateSpaceToggleListener,
                         privateSpaceSettingsListener,
                     )
@@ -113,6 +116,7 @@ class AppDrawerAdapter(
                 is ViewHolder -> holder.bind(
                     flag,
                     appLabelGravity,
+                    appSpacingScale,
                     myUserHandle,
                     appModel,
                     appClickListener,
@@ -207,10 +211,18 @@ class AppDrawerAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(
             appLabelGravity: Int,
+            appSpacingScale: Float,
             toggleListener: () -> Unit,
             settingsListener: () -> Unit,
         ) = with(binding) {
             privateSpaceTitle.gravity = appLabelGravity
+            val basePadding = root.resources.getDimensionPixelSize(R.dimen.app_padding_vertical)
+            privateSpaceTitle.setPadding(
+                privateSpaceTitle.paddingLeft,
+                (basePadding * appSpacingScale).roundToInt(),
+                privateSpaceTitle.paddingRight,
+                (basePadding * appSpacingScale).roundToInt(),
+            )
             privateSpaceTitle.setOnClickListener { toggleListener() }
             privateSpaceTitle.setOnLongClickListener {
                 settingsListener()
@@ -224,6 +236,7 @@ class AppDrawerAdapter(
         fun bind(
             flag: Int,
             appLabelGravity: Int,
+            appSpacingScale: Float,
             myUserHandle: UserHandle,
             appModel: AppModel,
             clickListener: (AppModel) -> Unit,
@@ -236,12 +249,15 @@ class AppDrawerAdapter(
             appHideLayout.visibility = View.GONE
             renameLayout.visibility = View.GONE
             appTitle.visibility = View.VISIBLE
+            val verticalPadding = (root.resources.getDimensionPixelSize(R.dimen.app_padding_vertical) * appSpacingScale).roundToInt()
+            appTitle.setPadding(appTitle.paddingLeft, verticalPadding, appTitle.paddingRight, verticalPadding)
+            etAppRename.setPadding(etAppRename.paddingLeft, verticalPadding, etAppRename.paddingRight, verticalPadding)
 
             // Show indicators in title based on app type and state
             appTitle.text = buildString {
                 append(appModel.appLabel)
                 if (appModel.isNew) append(" ✦")
-                if (flag == Constants.FLAG_MINDFUL_APPS && appSelected(appModel)) append("  ✓")
+                if (flag in setOf(Constants.FLAG_MINDFUL_APPS, Constants.FLAG_CONTEXTUAL_APPS) && appSelected(appModel)) append("  ✓")
             }
             appTitle.gravity = appLabelGravity
             otherProfileIndicator.isVisible = appModel.user != myUserHandle

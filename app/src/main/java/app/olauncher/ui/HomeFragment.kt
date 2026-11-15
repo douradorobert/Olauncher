@@ -34,6 +34,7 @@ import androidx.core.os.bundleOf
 import androidx.core.util.Consumer
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
+import androidx.car.app.connection.CarConnection
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -41,6 +42,10 @@ import app.olauncher.MainViewModel
 import app.olauncher.R
 import app.olauncher.data.AppModel
 import app.olauncher.data.Constants
+import app.olauncher.data.ContextualApp
+import app.olauncher.data.ContextualSuggestions
+import app.olauncher.data.ContextualSignals
+import app.olauncher.data.DeviceContextSignals
 import app.olauncher.data.Prefs
 import app.olauncher.data.calendar.CalendarEvent
 import app.olauncher.data.calendar.CalendarRepository
@@ -63,9 +68,11 @@ import app.olauncher.helper.showToast
 import app.olauncher.helper.createDialog
 import app.olauncher.helper.OlDialog
 import app.olauncher.listener.OnSwipeTouchListener
+import app.olauncher.listener.TextHitTarget
 import app.olauncher.listener.ViewSwipeTouchListener
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.Executors
 
@@ -76,6 +83,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var deviceManager: DevicePolicyManager
     private val ioExecutor = Executors.newSingleThreadExecutor()
     private var upcomingEvents: List<CalendarEvent> = emptyList()
+    private var currentContextLocation: Location? = null
+    private var carBluetoothConnected = false
+    private var connectedBluetoothAddresses: Set<String> = emptySet()
+    private var androidAutoConnected = false
     private var batteryReceiverRegistered = false
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -104,6 +115,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         setHomeAlignment(prefs.homeAlignment)
         initSwipeTouchListener()
         initClickListeners()
+        CarConnection(requireContext()).type.observe(viewLifecycleOwner) { connectionType ->
+            val wasConnected = androidAutoConnected
+            androidAutoConnected = connectionType == CarConnection.CONNECTION_TYPE_PROJECTION
+            if (androidAutoConnected || wasConnected) prefs.lastAndroidAutoActiveAt = System.currentTimeMillis()
+            if (_binding != null) refreshContextualSuggestions()
+        }
     }
 
     override fun onResume() {
@@ -114,6 +131,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         else hideStatusBar()
         refreshAgenda()
         refreshWeather()
+        refreshContextualSuggestions()
+        refreshContextLocation()
+        refreshCarBluetoothConnection()
     }
 
     override fun onStart() {
@@ -324,6 +344,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.dateTimeLayout.gravity = horizontalGravity
         binding.nextEvent.gravity = horizontalGravity
         binding.weather.gravity = horizontalGravity
+        binding.contextSuggestionsLabel.gravity = horizontalGravity
         binding.homeApp1.gravity = horizontalGravity
         binding.homeApp2.gravity = horizontalGravity
         binding.homeApp3.gravity = horizontalGravity
@@ -391,6 +412,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private fun populateHomeScreen(appCountUpdated: Boolean) {
         if (appCountUpdated) hideHomeApps()
         populateDateTime()
+        applyHomeAppSpacing()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             populateScreenTime()
@@ -454,10 +476,22 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
+    private fun homeAppVerticalPadding(): Int =
+        (resources.getDimensionPixelSize(R.dimen.home_app_padding_vertical) * prefs.appSpacingScale).toInt()
+
+    private fun applyHomeAppSpacing() {
+        val verticalPadding = homeAppVerticalPadding()
+        listOf(
+            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+        ).forEach { it.setPadding(it.paddingLeft, verticalPadding, it.paddingRight, verticalPadding) }
+    }
+
     private fun refreshAgenda() {
         if (!prefs.agendaEnabled || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
             upcomingEvents = emptyList()
             binding.nextEvent.isVisible = false
+            refreshContextualSuggestions()
             return
         }
         val appContext = requireContext().applicationContext
@@ -468,6 +502,149 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 upcomingEvents = events
                 binding.nextEvent.text = events.firstOrNull()?.let(::formatEventSummary).orEmpty()
                 binding.nextEvent.isVisible = events.isNotEmpty()
+                refreshContextualSuggestions()
+            }
+        }
+    }
+
+    private fun refreshContextualSuggestions() {
+        binding.contextSuggestions.removeAllViews()
+        val mixedViews = (0 until binding.homeAppsLayout.childCount)
+            .map(binding.homeAppsLayout::getChildAt)
+            .filter { it.getTag(R.id.contextSuggestions) == true }
+        mixedViews.forEach(binding.homeAppsLayout::removeView)
+        if (!prefs.contextualSuggestionsEnabled || prefs.contextualApps.isEmpty()) {
+            binding.contextSuggestions.isVisible = false
+            binding.contextSuggestionsLabel.isVisible = false
+            return
+        }
+
+        val launcher = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        val currentTime = Calendar.getInstance()
+        val hour = currentTime.get(Calendar.HOUR_OF_DAY)
+        val minute = currentTime.get(Calendar.MINUTE)
+        val pinnedPackages = ContextualSuggestions.visiblePinnedPackages(
+            packageNames = (1..Constants.MAX_HOME_ITEMS).map(prefs::getAppPackage),
+            visibleAppCount = prefs.homeAppsNum,
+        )
+        val candidates = prefs.contextualApps.mapNotNull { identity ->
+            val separator = identity.indexOf('|')
+            if (separator <= 0) return@mapNotNull null
+            val packageName = identity.substring(0, separator)
+            if (packageName in pinnedPackages) return@mapNotNull null
+            val userString = identity.substring(separator + 1)
+            val user = getUserHandleFromString(requireContext(), userString)
+            val activity = launcher.getActivityList(packageName, user).firstOrNull() ?: return@mapNotNull null
+            ContextualApp(
+                label = activity.label.toString(),
+                packageName = packageName,
+                activityClassName = activity.componentName.className,
+                user = userString,
+                usageScore = prefs.contextualUsageScore(identity, hour, minute),
+            )
+        }
+        val now = System.currentTimeMillis()
+        val contextEvent = upcomingEvents.firstOrNull {
+            it.begin <= now + 3 * Constants.ONE_HOUR_IN_MILLIS && it.end >= now
+        }
+        val currentWifi = DeviceContextSignals.currentWifi(requireContext().applicationContext)
+        val onHomeWifi = DeviceContextSignals.matchesHomeWifi(
+            current = currentWifi,
+            savedNames = prefs.homeWifiNames,
+            savedBssids = prefs.homeWifiBssids,
+        )
+        val distanceFromHome = currentContextLocation?.takeIf { prefs.homeLocationSet }?.let { location ->
+            val distance = FloatArray(1)
+            Location.distanceBetween(
+                location.latitude,
+                location.longitude,
+                prefs.homeLatitude.toDouble(),
+                prefs.homeLongitude.toDouble(),
+                distance,
+            )
+            distance[0]
+        }
+        val outsideByLocation = distanceFromHome?.let { it > 300f } ?: false
+        val atHome = onHomeWifi || distanceFromHome?.let { it <= 300f } == true
+        val outsideHome = outsideByLocation && !onHomeWifi
+        val suggestionLimit = ContextualSuggestions.availableSuggestionSlots(prefs.homeAppsNum, prefs.maximumHomeItems)
+        val suggestions = ContextualSuggestions.rank(
+            candidates = candidates,
+            event = contextEvent,
+            outsideHome = outsideHome,
+            atHome = atHome,
+            currentMinutes = hour * 60 + minute,
+            currentDayOfWeek = currentTime.get(Calendar.DAY_OF_WEEK),
+            rules = prefs.contextualRules(),
+            limit = suggestionLimit,
+            minimumScore = prefs.contextualMinimumScore,
+            signals = ContextualSignals(
+                bluetoothConnected = carBluetoothConnected,
+                connectedBluetoothAddresses = connectedBluetoothAddresses,
+                androidAutoConnected = androidAutoConnected,
+                lastBluetoothActiveAt = prefs.lastCarBluetoothActiveAt,
+                lastAndroidAutoActiveAt = prefs.lastAndroidAutoActiveAt,
+            ),
+            now = now,
+            lastRuleMatchedAt = prefs.contextualRules().keys.associateWith(prefs::contextualRuleLastMatchedAt),
+            onRuleMatched = prefs::recordContextualRuleMatch,
+        )
+        if (prefs.contextualSuggestionsMixed) {
+            val fixedApps = listOf(
+                binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+                binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+            ).filter { it.isVisible }
+            suggestions.forEachIndexed { index, app ->
+                val suggestionView = layoutInflater.inflate(
+                    R.layout.view_home_suggestion,
+                    binding.homeAppsLayout,
+                    false,
+                ) as TextView
+                suggestionView.apply {
+                    setTag(R.id.contextSuggestions, true)
+                    text = app.label
+                    gravity = prefs.homeAlignment
+                    val verticalPadding = homeAppVerticalPadding()
+                    setPadding(0, verticalPadding, 0, verticalPadding)
+                    setOnClickListener { launchApp(app.label, app.packageName, app.activityClassName, app.user) }
+                    setOnTouchListener(getSuggestionSwipeTouchListener(requireContext(), this, app))
+                }
+                val target = fixedApps.getOrNull((index * 2).coerceAtMost((fixedApps.size - 1).coerceAtLeast(0)))
+                val insertionIndex = target?.let(binding.homeAppsLayout::indexOfChild)?.plus(1)
+                    ?: binding.homeAppsLayout.indexOfChild(binding.contextSuggestionsLabel)
+                binding.homeAppsLayout.addView(suggestionView, insertionIndex)
+            }
+            binding.contextSuggestions.isVisible = false
+            binding.contextSuggestionsLabel.isVisible = false
+            return
+        }
+        suggestions.forEachIndexed { index, app ->
+            binding.contextSuggestions.addView(TextView(requireContext()).apply {
+                setTextAppearance(R.style.TextSmallBold)
+                text = app.label
+                setPadding(if (index == 0) 0 else 10.dpToPx(), 6.dpToPx(), 10.dpToPx(), 6.dpToPx())
+                setOnClickListener { launchApp(app.label, app.packageName, app.activityClassName, app.user) }
+                setOnTouchListener(getSuggestionSwipeTouchListener(requireContext(), this, app))
+            })
+        }
+        binding.contextSuggestions.isVisible = suggestions.isNotEmpty()
+        binding.contextSuggestionsLabel.isVisible = suggestions.isNotEmpty()
+    }
+
+    private fun refreshCarBluetoothConnection() {
+        val selectedAddresses = prefs.contextualRules().values
+            .flatMapTo(mutableSetOf()) { it.bluetoothDeviceAddresses }
+            .apply { prefs.carBluetoothAddress.takeIf(String::isNotBlank)?.let(::add) }
+        DeviceContextSignals.connectedBluetoothAddresses(
+            requireContext().applicationContext,
+            selectedAddresses,
+        ) { connectedAddresses ->
+            activity?.runOnUiThread {
+                val wasConnected = carBluetoothConnected
+                connectedBluetoothAddresses = connectedAddresses
+                carBluetoothConnected = connectedAddresses.any { it.equals(prefs.carBluetoothAddress, ignoreCase = true) }
+                if (carBluetoothConnected || wasConnected) prefs.lastCarBluetoothActiveAt = System.currentTimeMillis()
+                if (_binding != null) refreshContextualSuggestions()
             }
         }
     }
@@ -513,12 +690,50 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 null as android.os.CancellationSignal?,
                 ContextCompat.getMainExecutor(context),
                 Consumer<Location> { current ->
-                    (current ?: fallback)?.let { loadWeather(context, it) }
+                    (current ?: fallback)?.let {
+                        currentContextLocation = it
+                        if (_binding != null) refreshContextualSuggestions()
+                        loadWeather(context, it)
+                    }
                 },
             )
         }.onFailure {
             fallback?.let { loadWeather(context, it) }
         }
+    }
+
+    private fun refreshContextLocation() {
+        if (!prefs.contextualSuggestionsEnabled || !prefs.homeLocationSet ||
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) return
+        val context = requireContext().applicationContext
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val provider = when {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            else -> manager.getProviders(true).firstOrNull()
+        }
+        val fallback = runCatching {
+            manager.getProviders(true).mapNotNull(manager::getLastKnownLocation).maxByOrNull(Location::getTime)
+        }.getOrNull()
+        fun update(location: Location?) {
+            currentContextLocation = location ?: return
+            if (_binding != null) refreshContextualSuggestions()
+        }
+        if (provider == null) {
+            update(fallback)
+            return
+        }
+        runCatching {
+            LocationManagerCompat.getCurrentLocation(
+                manager,
+                provider,
+                null as android.os.CancellationSignal?,
+                ContextCompat.getMainExecutor(context),
+                Consumer { update(it ?: fallback) },
+            )
+        }.onFailure { update(fallback) }
     }
 
     private fun loadWeather(context: Context, location: Location, locationName: String? = null) {
@@ -606,7 +821,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     private fun formatEventSummary(event: CalendarEvent): String {
         val day = SimpleDateFormat("EEE", Locale.getDefault()).format(Date(event.begin))
-        return "$day ${event.title}"
+        if (event.allDay) return "$day ${event.title}"
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.begin))
+        return "$day $time, ${event.title}"
     }
 
     private fun formatEvent(event: CalendarEvent): String {
@@ -971,7 +1188,45 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 super.onClick(view)
                 textOnClick(view)
             }
+
+            override fun isTapInsideHitTarget(view: View, event: android.view.MotionEvent): Boolean {
+                return isTapInsideTextHitTarget(view, event)
+            }
         }
+    }
+
+    private fun getSuggestionSwipeTouchListener(
+        context: Context,
+        view: TextView,
+        app: ContextualApp,
+    ): View.OnTouchListener = object : ViewSwipeTouchListener(context, view) {
+        override fun onSwipeLeft() = openSwipeLeftApp()
+        override fun onSwipeRight() = openSwipeRightApp()
+        override fun onSwipeUp() = showAppList(Constants.FLAG_LAUNCH_APP)
+        override fun onSwipeDown() = expandNotificationDrawer(requireContext())
+
+        override fun onClick(view: View) {
+            launchApp(app.label, app.packageName, app.activityClassName, app.user)
+        }
+
+        override fun isTapInsideHitTarget(view: View, event: android.view.MotionEvent): Boolean =
+            isTapInsideTextHitTarget(view, event)
+    }
+
+    private fun isTapInsideTextHitTarget(view: View, event: android.view.MotionEvent): Boolean {
+        val textView = view as? TextView ?: return true
+        val textLayout = textView.layout ?: return false
+        if (textLayout.lineCount == 0 || textView.text.isNullOrEmpty()) return false
+        return TextHitTarget.contains(
+            x = event.x,
+            y = event.y,
+            textLeft = textView.compoundPaddingLeft + textLayout.getLineLeft(0),
+            textRight = textView.compoundPaddingLeft + textLayout.getLineRight(0),
+            textTop = (textView.extendedPaddingTop + textLayout.getLineTop(0)).toFloat(),
+            textBottom = (textView.extendedPaddingTop + textLayout.getLineBottom(0)).toFloat(),
+            horizontalMargin = 8.dpToPx(),
+            verticalMargin = 4.dpToPx(),
+        )
     }
 
     override fun onDestroyView() {
