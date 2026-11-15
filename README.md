@@ -24,6 +24,12 @@ Esta versão evolui de forma independente e inclui recursos que podem não exist
 
 Ela também remove da interface promoções, recomendações de outros aplicativos e links comerciais associados à distribuição original.
 
+### Sugestões contextuais
+
+O launcher pode aprender em quais horários os aplicativos selecionados costumam ser abertos e combinar esse histórico com regras, compromissos e o contexto do dispositivo. Nas configurações, é possível definir a pontuação mínima para uma sugestão aparecer e, opcionalmente, manter perfis de uso separados para dias úteis e fins de semana.
+
+A fórmula, os bônus, a persistência e exemplos de cálculo estão documentados em [Sugestões contextuais](docs/contextual-suggestions.md).
+
 ## Compilação
 
 Abra o projeto em uma versão atual do Android Studio com o Android SDK instalado ou compile pelo terminal:
