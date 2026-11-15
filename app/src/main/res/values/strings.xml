@@ -150,6 +150,9 @@
     <string name="contextual_suggestions" tools:ignore="MissingTranslation">Contextual suggestions</string>
     <string name="contextual_apps" tools:ignore="MissingTranslation">Suggested apps</string>
     <string name="maximum_home_items" tools:ignore="MissingTranslation">Maximum apps on home screen</string>
+    <string name="minimum_score" tools:ignore="MissingTranslation">Minimum suggestion score</string>
+    <string name="separate_contextual_day_profiles" tools:ignore="MissingTranslation">Separate weekdays and weekends</string>
+    <string name="minimum_score_info_message" tools:ignore="MissingTranslation">The final score is the learned usage score plus contextual bonuses. Each recent launch is worth up to 10 points at the same time of day, with lower weights for nearby half-hour periods. Contributions halve every 7 days and expire after 30 days. Matching rules add 200 points, health events add 100 to health apps, event destinations add 80 to navigation apps, and being outside home adds 30 to navigation apps. Apps appear only when their final score reaches this minimum. If weekday/weekend profiles are enabled, learned usage is calculated only from the matching type of day.</string>
     <string name="suggestion_display" tools:ignore="MissingTranslation">Suggestion display</string>
     <string name="mixed" tools:ignore="MissingTranslation">Mixed</string>
     <string name="separate" tools:ignore="MissingTranslation">Separate</string>

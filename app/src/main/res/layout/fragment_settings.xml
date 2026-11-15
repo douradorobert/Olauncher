@@ -395,6 +395,55 @@
                 </FrameLayout>
 
                 <FrameLayout
+                    android:id="@+id/contextualMinimumScoreRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/minimum_score"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/contextualMinimumScore"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/_0"
+                        tools:text="20" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/separateContextualDayProfilesRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingVertical="8dp"
+                        android:text="@string/separate_contextual_day_profiles"
+                        android:textColor="?attr/primaryColor" />
+                    <TextView
+                        android:id="@+id/separateContextualDayProfiles"
+                        style="@style/TextSmallBold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|bottom"
+                        android:layout_marginEnd="4dp"
+                        android:padding="8dp"
+                        android:text="@string/off" />
+                </FrameLayout>
+
+                <FrameLayout
                     android:id="@+id/suggestionDisplayRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

@@ -46,6 +46,7 @@ import app.olauncher.data.ContextualRule
 import app.olauncher.data.DeviceContextSignals
 import app.olauncher.data.Prefs
 import app.olauncher.data.SettingsBackup
+import app.olauncher.databinding.DialogMinimumScoreBinding
 import app.olauncher.databinding.DialogTextSizeBinding
 import app.olauncher.databinding.FragmentSettingsBinding
 import app.olauncher.helper.appUsagePermissionGranted
@@ -173,6 +174,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.contextualSuggestions -> toggleContextualSuggestions()
             R.id.contextualApps -> showAppListIfEnabled(Constants.FLAG_CONTEXTUAL_APPS)
             R.id.maximumHomeItems -> showMaximumHomeItemsMenu(view)
+            R.id.contextualMinimumScore -> showMinimumScoreDialog()
+            R.id.separateContextualDayProfiles -> toggleContextualDayProfiles()
             R.id.suggestionDisplay -> toggleSuggestionDisplay()
             R.id.suggestionRules -> showSuggestionRules()
             R.id.homeLocation -> saveCurrentLocationAsHome()
@@ -244,6 +247,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.contextualSuggestions.setOnClickListener(this)
         binding.contextualApps.setOnClickListener(this)
         binding.maximumHomeItems.setOnClickListener(this)
+        binding.contextualMinimumScore.setOnClickListener(this)
+        binding.separateContextualDayProfiles.setOnClickListener(this)
         binding.suggestionDisplay.setOnClickListener(this)
         binding.suggestionRules.setOnClickListener(this)
         binding.homeLocation.setOnClickListener(this)
@@ -813,6 +818,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.contextualSuggestions.setText(if (enabled) R.string.on else R.string.off)
         binding.contextualApps.text = NumberFormat.getIntegerInstance().format(prefs.contextualApps.size)
         binding.maximumHomeItems.text = NumberFormat.getIntegerInstance().format(prefs.maximumHomeItems)
+        binding.contextualMinimumScore.text = NumberFormat.getIntegerInstance().format(prefs.contextualMinimumScore)
+        binding.separateContextualDayProfiles.setText(if (prefs.separateContextualDayProfiles) R.string.on else R.string.off)
         binding.suggestionDisplay.setText(if (prefs.contextualSuggestionsMixed) R.string.mixed else R.string.separate)
         binding.homeLocation.setText(if (prefs.homeLocationSet) R.string.on else R.string.set)
         val homeWifiNames = prefs.homeWifiNames.sorted().joinToString(", ")
@@ -826,6 +833,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         listOf(
             binding.contextualAppsRow to binding.contextualApps,
             binding.maximumHomeItemsRow to binding.maximumHomeItems,
+            binding.contextualMinimumScoreRow to binding.contextualMinimumScore,
+            binding.separateContextualDayProfilesRow to binding.separateContextualDayProfiles,
             binding.suggestionDisplayRow to binding.suggestionDisplay,
             binding.suggestionRulesRow to binding.suggestionRules,
             binding.homeLocationRow to binding.homeLocation,
@@ -845,6 +854,55 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun toggleSuggestionDisplay() {
         prefs.contextualSuggestionsMixed = !prefs.contextualSuggestionsMixed
         populateContextualSuggestions()
+    }
+
+    private fun toggleContextualDayProfiles() {
+        prefs.separateContextualDayProfiles = !prefs.separateContextualDayProfiles
+        populateContextualSuggestions()
+        viewModel.refreshHome(false)
+    }
+
+    private fun showMinimumScoreDialog() {
+        var pendingScore = prefs.contextualMinimumScore
+        var stepper: DialogMinimumScoreBinding? = null
+        val minimumScoreDialog = requireContext().createDialog(
+            title = R.string.minimum_score,
+            action = R.string.okay,
+            onAction = {
+                prefs.contextualMinimumScore = pendingScore
+                populateContextualSuggestions()
+                viewModel.refreshHome(false)
+            },
+            content = { container ->
+                DialogMinimumScoreBinding.inflate(layoutInflater, container, false).also { stepper = it }.root
+            },
+        )
+        stepper?.apply {
+            fun render() {
+                minimumScoreCurrent.text = NumberFormat.getIntegerInstance().format(pendingScore)
+                minimumScoreMinus.isEnabled = pendingScore > 0
+                minimumScorePlus.isEnabled = pendingScore < 200
+            }
+            minimumScoreMinus.setOnClickListener {
+                pendingScore = (pendingScore - 10).coerceAtLeast(0)
+                render()
+            }
+            minimumScorePlus.setOnClickListener {
+                pendingScore = (pendingScore + 10).coerceAtMost(200)
+                render()
+            }
+            minimumScoreInfo.setOnClickListener { showMinimumScoreInfo() }
+            render()
+        }
+        showDialog(minimumScoreDialog)
+    }
+
+    private fun showMinimumScoreInfo() {
+        requireContext().createDialog(
+            title = R.string.info,
+            action = R.string.close,
+            message = R.string.minimum_score_info_message,
+        ).showRespectingStatusBar()
     }
 
     private fun showSuggestionRules() {
