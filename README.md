@@ -30,6 +30,26 @@ O launcher pode aprender em quais horários os aplicativos selecionados costumam
 
 A fórmula, os bônus, a persistência e exemplos de cálculo estão documentados em [Sugestões contextuais](docs/contextual-suggestions.md).
 
+## Capturas de tela
+
+As imagens abaixo foram obtidas do launcher em funcionamento. Elas mostram sugestões misturadas aos aplicativos fixos, agenda e clima na tela inicial, além das principais opções de configuração.
+
+<p align="center">
+  <img src="docs/images/home-contextual.png" width="250" alt="Tela inicial do Olauncher com agenda, clima, aplicativos fixos e sugestões contextuais">
+  <img src="docs/images/suggestion-settings.png" width="250" alt="Configurações de sugestões contextuais, incluindo limiar mínimo e perfis de dias">
+  <img src="docs/images/contextual-rule.png" width="250" alt="Editor de regra contextual com horários, dias e condições">
+</p>
+
+<p align="center">
+  <img src="docs/images/upcoming-events.png" width="230" alt="Janela de próximos eventos do calendário">
+  <img src="docs/images/mindful-pause.png" width="230" alt="Pausa consciente antes da abertura de um aplicativo">
+  <img src="docs/images/suggestion-apps.png" width="230" alt="Seleção dos aplicativos que podem receber regras de sugestão">
+</p>
+
+<p align="center">
+  <img src="docs/images/backup-restore.png" width="420" alt="Seção de backup e restauração com ações para exportar e importar configurações">
+</p>
+
 ## Compilação
 
 Abra o projeto em uma versão atual do Android Studio com o Android SDK instalado ou compile pelo terminal:
