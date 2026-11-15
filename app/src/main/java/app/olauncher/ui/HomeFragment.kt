@@ -594,9 +594,13 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
             ).filter { it.isVisible }
             suggestions.forEachIndexed { index, app ->
-                val suggestionView = TextView(requireContext()).apply {
+                val suggestionView = layoutInflater.inflate(
+                    R.layout.view_home_suggestion,
+                    binding.homeAppsLayout,
+                    false,
+                ) as TextView
+                suggestionView.apply {
                     setTag(R.id.contextSuggestions, true)
-                    setTextAppearance(R.style.TextLarge)
                     text = app.label
                     gravity = prefs.homeAlignment
                     val verticalPadding = homeAppVerticalPadding()

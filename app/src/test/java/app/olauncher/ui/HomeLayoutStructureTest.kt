@@ -18,6 +18,19 @@ class HomeLayoutStructureTest {
         ).forEach(::assertWeightedContentFlow)
     }
 
+    @Test
+    fun `mixed suggestion rows do not capture blank horizontal space`() {
+        val path = "app/src/main/res/layout/view_home_suggestion.xml"
+        val file = File(path).takeIf(File::exists) ?: File("../$path")
+        val root = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+        }.newDocumentBuilder().parse(file).documentElement
+
+        assertEquals("TextView", root.tagName)
+        assertEquals("wrap_content", root.getAttributeNS(androidNamespace, "layout_width"))
+        assertEquals("wrap_content", root.getAttributeNS(androidNamespace, "layout_height"))
+    }
+
     private fun assertWeightedContentFlow(path: String) {
         val file = File(path).takeIf(File::exists) ?: File("../$path")
         val document = DocumentBuilderFactory.newInstance().apply {
