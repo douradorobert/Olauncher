@@ -129,10 +129,7 @@ class ContextualUsageHistoryTest {
             entry(day = 9, mass = 1.0), // Saturday
         )
 
-        assertEquals(
-            ContextualUsageHistory.score(entries, "spotify", 10, 0, 11),
-            ContextualUsageHistory.score(entries, "spotify", 10, 0, 11, separateDayProfiles = false),
-        )
+        assertEquals(18, ContextualUsageHistory.score(entries, "spotify", 10, 0, 11, separateDayProfiles = false))
     }
 
     @Test

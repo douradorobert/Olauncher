@@ -23,6 +23,26 @@ class ContextualScoringSettingsStructureTest {
     }
 
     @Test
+    fun `contextual scoring rows reserve space for values`() {
+        listOf(
+            "app/src/main/res/layout/fragment_settings.xml",
+            "app/src/main/res/layout-land/fragment_settings.xml",
+        ).forEach { path ->
+            val byId = elementsById(path)
+            listOf("contextualMinimumScoreRow", "separateContextualDayProfilesRow").forEach { id ->
+                val row = byId.getValue("@+id/$id")
+                assertEquals("$path $id must lay out children horizontally", "LinearLayout", row.tagName)
+                val label = (0 until row.childNodes.length)
+                    .map { row.childNodes.item(it) }
+                    .filterIsInstance<Element>()
+                    .first()
+                assertEquals("0dp", label.getAttributeNS(androidNamespace, "layout_width"))
+                assertEquals("1", label.getAttributeNS(androidNamespace, "layout_weight"))
+            }
+        }
+    }
+
+    @Test
     fun `minimum score dialog matches the rule info pattern and has a stepper`() {
         val byId = elementsById("app/src/main/res/layout/dialog_minimum_score.xml")
         val info = byId.getValue("@+id/minimumScoreInfo")

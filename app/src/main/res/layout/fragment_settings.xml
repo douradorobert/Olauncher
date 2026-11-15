@@ -394,16 +394,19 @@
                         tools:text="8" />
                 </FrameLayout>
 
-                <FrameLayout
+                <LinearLayout
                     android:id="@+id/contextualMinimumScoreRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
                     <TextView
                         style="@style/TextSmall"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_weight="1"
                         android:paddingVertical="8dp"
                         android:text="@string/minimum_score"
                         android:textColor="?attr/primaryColor" />
@@ -412,23 +415,25 @@
                         style="@style/TextSmallBold"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="end|bottom"
                         android:layout_marginEnd="4dp"
                         android:padding="8dp"
                         android:text="@string/_0"
                         tools:text="20" />
-                </FrameLayout>
+                </LinearLayout>
 
-                <FrameLayout
+                <LinearLayout
                     android:id="@+id/separateContextualDayProfilesRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
                     <TextView
                         style="@style/TextSmall"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_weight="1"
                         android:paddingVertical="8dp"
                         android:text="@string/separate_contextual_day_profiles"
                         android:textColor="?attr/primaryColor" />
@@ -437,11 +442,10 @@
                         style="@style/TextSmallBold"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="end|bottom"
                         android:layout_marginEnd="4dp"
                         android:padding="8dp"
                         android:text="@string/off" />
-                </FrameLayout>
+                </LinearLayout>
 
                 <FrameLayout
                     android:id="@+id/suggestionDisplayRow"
