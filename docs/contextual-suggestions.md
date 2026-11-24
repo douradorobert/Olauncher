@@ -81,6 +81,8 @@ Os bônus são cumulativos. O limiar é comparado com a pontuação final, depoi
 
 As regras podem combinar horário, dias válidos, texto do calendário, presença em casa, Bluetooth e Android Auto. O ícone de informação no editor explica como as condições são combinadas.
 
+Para avaliar a presença em casa, o launcher pode reutilizar em memória uma posição capturada há menos de dois minutos. Quando as sugestões e o clima automático precisam de uma posição ao mesmo tempo, compartilham a consulta ao Android. Sem posição recente, o Wi-Fi de casa ainda pode indicar presença.
+
 Eventos próximos podem ser consultados diretamente pela tela inicial. Quando um compromisso relevante entra na janela avaliada, seu título e local também podem contribuir para os bônus descritos acima.
 
 <p align="center">

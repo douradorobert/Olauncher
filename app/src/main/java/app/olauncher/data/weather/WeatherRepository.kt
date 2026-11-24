@@ -19,7 +19,7 @@ class WeatherRepository(private val context: Context) {
 
     fun load(location: Location, force: Boolean = false, locationName: String? = null): WeatherSnapshot {
         val cached = cached()
-        if (!force && cached != null && System.currentTimeMillis() - cached.updatedAt < CACHE_MS) return cached
+        if (!force && cached?.isFresh(System.currentTimeMillis()) == true) return cached
         val connection = URL(
             "https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}" +
                 "&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=auto"
@@ -44,6 +44,4 @@ class WeatherRepository(private val context: Context) {
         Geocoder(context, Locale.getDefault()).getFromLocation(location.latitude, location.longitude, 1)
             ?.firstOrNull()?.let { it.subLocality ?: it.locality ?: it.subAdminArea ?: it.adminArea }.orEmpty()
     }.getOrDefault("")
-
-    companion object { const val CACHE_MS = 30L * 60L * 1000L }
 }

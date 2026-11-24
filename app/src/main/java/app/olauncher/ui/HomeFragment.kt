@@ -14,6 +14,7 @@ import android.location.LocationManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.provider.CalendarContract
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -83,7 +84,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var deviceManager: DevicePolicyManager
     private val ioExecutor = Executors.newSingleThreadExecutor()
     private var upcomingEvents: List<CalendarEvent> = emptyList()
-    private var currentContextLocation: Location? = null
     private var carBluetoothConnected = false
     private var connectedBluetoothAddresses: Set<String> = emptySet()
     private var androidAutoConnected = false
@@ -130,9 +130,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         if (prefs.showStatusBar) showStatusBar()
         else hideStatusBar()
         refreshAgenda()
-        refreshWeather()
         refreshContextualSuggestions()
-        refreshContextLocation()
+        refreshWeatherAndLocation()
         refreshCarBluetoothConnection()
     }
 
@@ -553,7 +552,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             savedNames = prefs.homeWifiNames,
             savedBssids = prefs.homeWifiBssids,
         )
-        val distanceFromHome = currentContextLocation?.takeIf { prefs.homeLocationSet }?.let { location ->
+        val distanceFromHome = viewModel.homeLocation.recent()?.takeIf {
+            prefs.homeLocationSet && canUseDeviceLocation(requireContext())
+        }?.let { location ->
             val distance = FloatArray(1)
             Location.distanceBetween(
                 location.latitude,
@@ -649,91 +650,87 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
-    private fun refreshWeather() {
+    private fun refreshWeatherAndLocation() {
+        val context = requireContext().applicationContext
+        val needsWeatherLocation = refreshWeather(context)
+        val needsContextLocation = prefs.contextualSuggestionsEnabled && prefs.homeLocationSet
+        if (!needsWeatherLocation && !needsContextLocation) return
+
+        val homeLocation = viewModel.homeLocation
+        if (!canUseDeviceLocation(context)) {
+            homeLocation.clear()
+            return
+        }
+
+        val manager = context.getSystemService(LocationManager::class.java) ?: return
+        val activeBinding = binding
+        val previousLocation = homeLocation.recent()
+        homeLocation.get(
+            request = { requestCurrentLocation(context, manager, it) },
+            lastKnown = {
+                runCatching {
+                    manager.getProviders(true).mapNotNull(manager::getLastKnownLocation)
+                        .maxByOrNull(Location::getElapsedRealtimeNanos)
+                }.getOrNull()
+            },
+        ) { location ->
+            if (_binding !== activeBinding) return@get
+            if (!canUseDeviceLocation(context)) {
+                homeLocation.clear()
+                return@get
+            }
+            if (needsContextLocation && location !== previousLocation && homeLocation.recent() != null) {
+                refreshContextualSuggestions()
+            }
+            if (needsWeatherLocation && location != null && prefs.weatherEnabled && !prefs.weatherManual) {
+                loadWeather(context, location)
+            }
+        }
+    }
+
+    private fun refreshWeather(context: Context): Boolean {
         if (!prefs.weatherEnabled) {
             binding.weather.isVisible = false
-            return
+            return false
         }
-        val context = requireContext().applicationContext
-        WeatherRepository(context).cached()?.let { showWeather(it.temperature, it.weatherCode, it.locationName) }
-        val manualName = prefs.weatherLocationName.takeIf { prefs.weatherManual }
-        if (prefs.weatherManual) {
-            android.location.Location("manual").apply {
-                latitude = prefs.weatherLatitude.toDouble()
-                longitude = prefs.weatherLongitude.toDouble()
-            }.also { loadWeather(context, it, manualName) }
-        } else {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
-            requestCurrentLocation(context)
+
+        val cached = WeatherRepository(context).cached()
+        cached?.let { showWeather(it.temperature, it.weatherCode, it.locationName) }
+        if (cached?.isFresh(System.currentTimeMillis()) == true) return false
+        if (!prefs.weatherManual) return true
+
+        val location = Location("manual").apply {
+            latitude = prefs.weatherLatitude.toDouble()
+            longitude = prefs.weatherLongitude.toDouble()
         }
+        loadWeather(context, location, prefs.weatherLocationName)
+        return false
     }
 
-    private fun requestCurrentLocation(context: Context) {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val provider = when {
-            hasFineLocation && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            else -> locationManager.getProviders(true).firstOrNull()
-        }
-        val fallback = runCatching {
-            locationManager.getProviders(true).mapNotNull(locationManager::getLastKnownLocation).maxByOrNull(Location::getTime)
-        }.getOrNull()
-        if (provider == null) {
-            fallback?.let { loadWeather(context, it) }
-            return
-        }
-        runCatching {
-            LocationManagerCompat.getCurrentLocation(
-                locationManager,
-                provider,
-                null as android.os.CancellationSignal?,
-                ContextCompat.getMainExecutor(context),
-                Consumer<Location> { current ->
-                    (current ?: fallback)?.let {
-                        currentContextLocation = it
-                        if (_binding != null) refreshContextualSuggestions()
-                        loadWeather(context, it)
-                    }
-                },
-            )
-        }.onFailure {
-            fallback?.let { loadWeather(context, it) }
-        }
-    }
+    private fun canUseDeviceLocation(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED &&
+            context.getSystemService(LocationManager::class.java)?.let(LocationManagerCompat::isLocationEnabled) == true
 
-    private fun refreshContextLocation() {
-        if (!prefs.contextualSuggestionsEnabled || !prefs.homeLocationSet ||
-            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        ) return
-        val context = requireContext().applicationContext
-        val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val provider = when {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            else -> manager.getProviders(true).firstOrNull()
-        }
-        val fallback = runCatching {
-            manager.getProviders(true).mapNotNull(manager::getLastKnownLocation).maxByOrNull(Location::getTime)
-        }.getOrNull()
-        fun update(location: Location?) {
-            currentContextLocation = location ?: return
-            if (_binding != null) refreshContextualSuggestions()
-        }
-        if (provider == null) {
-            update(fallback)
-            return
-        }
-        runCatching {
+    private fun requestCurrentLocation(
+        context: Context,
+        manager: LocationManager,
+        result: Consumer<Location?>,
+    ) {
+        val requested = runCatching {
+            val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+            val provider = when {
+                hasFineLocation && manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+                manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+                else -> manager.getProviders(true).firstOrNull()
+            } ?: return@runCatching false
             LocationManagerCompat.getCurrentLocation(
-                manager,
-                provider,
-                null as android.os.CancellationSignal?,
-                ContextCompat.getMainExecutor(context),
-                Consumer { update(it ?: fallback) },
+                manager, provider, null as CancellationSignal?, ContextCompat.getMainExecutor(context), result,
             )
-        }.onFailure { update(fallback) }
+            true
+        }.getOrDefault(false)
+        if (!requested) result.accept(null)
     }
 
     private fun loadWeather(context: Context, location: Location, locationName: String? = null) {
