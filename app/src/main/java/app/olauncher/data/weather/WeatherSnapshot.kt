@@ -5,7 +5,13 @@ data class WeatherSnapshot(
     val weatherCode: Int,
     val locationName: String,
     val updatedAt: Long,
-)
+) {
+    fun isFresh(now: Long): Boolean = now - updatedAt in 0L until CACHE_MS
+
+    private companion object {
+        const val CACHE_MS = 30 * 60 * 1000L
+    }
+}
 
 fun weatherSymbol(code: Int): String = when (code) {
     0 -> "☀"

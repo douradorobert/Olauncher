@@ -5,7 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.location.Location
 import android.os.Build
+import android.os.SystemClock
 import android.os.UserHandle
 import android.os.UserManager
 import androidx.lifecycle.AndroidViewModel
@@ -19,6 +21,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import app.olauncher.data.AppModel
 import app.olauncher.data.Constants
+import app.olauncher.data.HomeLocationCache
 import app.olauncher.data.Prefs
 import app.olauncher.data.MindfulLaunchDelay
 import app.olauncher.data.PendingAppLaunch
@@ -48,6 +51,9 @@ import java.util.concurrent.TimeUnit
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val appContext by lazy { application.applicationContext }
     private val prefs = Prefs(appContext)
+    internal val homeLocation = HomeLocationCache<Location>(SystemClock::elapsedRealtime) {
+        it.elapsedRealtimeNanos / 1_000_000L
+    }
 
     val firstOpen = MutableLiveData<Boolean>()
     val refreshHome = MutableLiveData<Boolean>()

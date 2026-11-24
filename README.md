@@ -15,7 +15,7 @@ Este repositório contém um **fork independente e modificado** do Olauncher. El
 - Papéis de parede diários opcionais.
 - Pausa consciente antes de abrir aplicativos selecionados.
 - Sugestões contextuais baseadas em uso, horário e contexto do dispositivo.
-- Agenda e clima opcionais na tela inicial.
+- Agenda e clima opcionais na tela inicial. O clima reutiliza a previsão por 30 minutos. No modo automático, se o Android não obtiver a posição atual, o launcher usa a última posição conhecida quando disponível e mantém a previsão salva enquanto aguarda uma atualização.
 - Backup e restauração das configurações.
 
 ## Diferenças desta versão
